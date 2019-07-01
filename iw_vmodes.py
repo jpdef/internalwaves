@@ -51,14 +51,14 @@ class iw_vmodes:
         if callable(self.N):
             No  = quad(self.N,self.depth[-1],self.depth[0])[0]
             eta = np.vectorize(lambda z :  (1/No)*quad(self.N,self.depth[-1],z)[0])
-            self.modes = [ np.sin(np.pi*j*eta(self.depth) for j in range(0,len(self.depth) ]
+            self.modes = [ np.sin(np.pi*j*eta(self.depth)) for j in np.arange(0,len(self.depth)) ]
             return np.sin(np.pi*j*eta(self.depth))
         
         elif isinstance (self.N, np.ndarray):
             No  = trapz(self.N,self.depth)
             eta = np.vectorize( lambda zn : (1/No)*trapz(self.N[zn:],self.depth[zn:]) )
             zn = np.arange(0,len(self.depth))
-            self.modes = [ np.sin(np.pi*j*eta(zn) for j in range(0,len(self.depth) ]
+            self.modes = [ np.sin(np.pi*j*eta(zn)) for j in np.arange(0,len(self.depth)) ]
             return np.sin(np.pi*j*eta(zn))
         
         else:

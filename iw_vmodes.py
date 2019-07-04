@@ -32,6 +32,7 @@ class iw_vmodes:
         self.depth = depth
         self.N = N
         self.modes = []
+        self.freqs = []
     
 
     def gen_vmodes_wkb(self,j):
@@ -90,8 +91,8 @@ class iw_vmodes:
         #Eigen value problem IW equation
         w,vr = eig(-N2,(D2-K2))
  
-        self.modes = [ vr[:,m] for m in np.arange(0,len(vr)) ]
-     
+        self.modes  = [ vr[:,m] for m in np.arange(0,len(vr)) ]
+        self.freqs = np.sqrt(w)*k 
         return w,vr
 
 

@@ -27,20 +27,14 @@ class InternalWaveField:
         else:
             print("Intializing wavefield")
         
-        self.depth = np.linspace(0,alpha,npoints[0])
-        self.range = np.linspace(0,1,npoints[1])
-        self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
-        self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
-        self.num_modes = num_modes
+        #Set all fields in object
+        self.set_attributes(bfrq,alpha,num_modes,npoints)        
         
-        if freqs.size and not hwavenumbers.size:
-            print("Field with input of frequencies")
-            self.freqs = np.tile(freqs,(num_modes,1))
-            self.hwavenumbers = self.construct_hwavenumbers(freqs)
-        elif hwavenumbers.size and not freqs.size:
-            print("Field with input of wavenumbers")
-            self.hwavenumbers = np.tile(hwavenumbers,(num_modes,1))
-            self.freqs = self.construct_frequencies(hwavenumbers)
+        #Compute phase speeds and vertical structure functions
+        self.init_dispersion(freqs,hwavenumbers)
+
+        #Compute 2D field from phase speeds and structure functions
+        self.construct_field()
     
 
     def construct_field(self):
@@ -50,6 +44,37 @@ class InternalWaveField:
         components by taking an outer product of the two vectors
         """
         pass
+
+    
+    def set_attributes(self,bfrq,alpha,num_modes,npoints):
+        self.depth = np.linspace(0,alpha,npoints[0])
+        self.range = np.linspace(0,1,npoints[1])
+        self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
+        self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
+        self.num_modes = num_modes
+
+
+    def init_dispersion(self,freqs,hwavenumbers):
+        """
+        self.vertical_component[z_n, m, f_n] 
+            z_n depth grid point for vertical functions
+            m   mode number
+            f_n associated frequency
+        """
+        D = len(self.depth)
+        if freqs.size and not hwavenumbers.size:
+            print("Field with input of frequencies")
+            nf = len(freqs)
+            self.vertical_comp = np.ndarray(shape=(D,D,nf ) )
+            self.freqs = np.tile(freqs,(self.num_modes,1))
+            self.hwavenumbers = self.construct_hwavenumbers(freqs)
+        elif hwavenumbers.size and not freqs.size:
+            print("Field with input of wavenumbers")
+            nk = len(hwavenumbers)
+            self.vertical_comp = ndarray(shape=(D,D,nk) )
+            self.hwavenumbers = np.tile(hwavenumbers,(self.num_modes,1))
+            self.freqs = self.construct_frequencies(hwavenumbers)
+
 
     def construct_hwavenumbers(self,freqs):
         """
@@ -86,14 +111,16 @@ class InternalWaveField:
         self.dispcurves=[]
         for m in range(self.num_modes):
             dependent_vars = []
-            for ivar in independent_vars:
+            for itr,ivar in enumerate(independent_vars):
                 if isfreqs:
                     cp,vr = self.vmodes.gen_vmodes_evp_f(ivar)
                     #dependent_vars.append( ivar/np.sqrt( abs(cp[m].real)))
                     dependent_vars.append( ivar/np.sqrt( cp[m]))
+                    self.vertical_comp[:,:,itr] = vr
                 else:
                     cp,vr = self.vmodes.gen_vmodes_evp_k(ivar)
                     dependent_vars.append( np.sqrt(cp[m].real)*ivar )
+                    self.vertical_comp[:,:,itr] = vr
                     
             f = interpolate.interp1d(independent_vars,dependent_vars,kind='cubic')
             self.dispcurves.append(f)

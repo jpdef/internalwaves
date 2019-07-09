@@ -17,14 +17,31 @@ class InternalWaveField:
 
     """
 
-    def __init__(self,bfrq,freqs,alpha=0.5,num_modes=1,npoints=(100,50)):
+    def __init__(self,freqs=[],hwavenumbers=np.array([]),
+                 bfrq=np.array([]), alpha=0.5,num_modes=1,npoints=(100,50)):
+        
+        if not freqs.size and not hwavenumbers.size:
+            print("""Internal Wave field needs a set of frequencies 
+                   or horizontal wavenumbers""")
+            return
+        else:
+            print("Intializing wavefield")
+        
         self.depth = np.linspace(0,alpha,npoints[0])
         self.range = np.linspace(0,1,npoints[1])
-        self.vmodes = iwvm.iw_vmodes(bfrq,self.depth)
+        self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
+        self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.num_modes = num_modes
-        self.hwavenumbers = np.zeros([self.num_modes,len(freqs)])
-
-
+        
+        if freqs.size and not hwavenumbers.size:
+            print("Field with input of frequencies")
+            self.freqs = np.tile(freqs,(num_modes,1))
+            self.hwavenumbers = self.construct_hwavenumbers(freqs)
+        elif hwavenumbers.size and not freqs.size:
+            print("Field with input of wavenumbers")
+            self.hwavenumbers = np.tile(hwavenumbers,(num_modes,1))
+            self.freqs = self.construct_frequencies(hwavenumbers)
+    
 
     def construct_field(self):
         """
@@ -34,19 +51,33 @@ class InternalWaveField:
         """
         pass
 
-
     def construct_hwavenumbers(self,freqs):
-        #Construct a set of dummy wave numbers from range
-        hwavenumbers = [20*np.pi/(wl+0.1) for wl in self.range]
-        
+        """
+        Desc:
+        Constructs a set of horizontal wavenumbers from the
+        set of input frequencies via the dispersion relations
+        """
         #Make a interploations of dispersion for each mode
-        self.construct_dispersion_curves(hwavenumbers)
+        self.construct_dispersion_curves(True,freqs)
 
         #Invert interpolation to compute wavenumber from input frequency
-        self.hwavenumbers = self.transform_frequencies_to_wavenumber(freqs) 
+        return self.transform_frequencies_to_wavenumber(freqs) 
+    
+
+    def construct_frequencies(self,hwavenumbers):
+        """
+        Desc:
+        Constructs a set of frequencies from the set of input frequencies
+        input horizontal wavenumbers  via the dispersion relations
+        """
+        #Make a interploations of dispersion for each mode
+        self.construct_dispersion_curves(False,hwavenumbers)
+        
+        #Invert interpolation to compute wavenumber from input frequency
+        return self.transform_wavenumber_to_frequencies(hwavenumbers) 
 
 
-    def construct_dispersion_curves(self,hwavenumbers):
+    def construct_dispersion_curves(self,isfreqs,independent_vars):
         """
         Desc:
         Interpolates a dispersion curve from the eigenvalues of
@@ -54,45 +85,43 @@ class InternalWaveField:
         """
         self.dispcurves=[]
         for m in range(self.num_modes):
-            freqs = []
-            for wn in hwavenumbers:
-                cp,vr = self.vmodes.gen_vmodes_evp(wn)
-                freqs.append( np.sqrt(cp[m].real)*wn )
-            f = interpolate.interp1d(hwavenumbers,freqs)
+            dependent_vars = []
+            for ivar in independent_vars:
+                if isfreqs:
+                    cp,vr = self.vmodes.gen_vmodes_evp_f(ivar)
+                    #dependent_vars.append( ivar/np.sqrt( abs(cp[m].real)))
+                    dependent_vars.append( ivar/np.sqrt( cp[m]))
+                else:
+                    cp,vr = self.vmodes.gen_vmodes_evp_k(ivar)
+                    dependent_vars.append( np.sqrt(cp[m].real)*ivar )
+                    
+            f = interpolate.interp1d(independent_vars,dependent_vars,kind='cubic')
             self.dispcurves.append(f)
-
-
+     
+ 
+    def transform_wavenumber_to_frequencies(self,hwavenumbers):
+        if self.dispcurves:
+            freqs = np.vstack( [ f(hwavenumbers) for f in self.dispcurves ])
+            return freqs
+        else:
+           raise ValueError
+   
+ 
     def transform_frequencies_to_wavenumber(self,freqs):
+        if self.dispcurves:
+           hwavenumbers = np.vstack( [ f(freqs) for f in self.dispcurves ])
+           return hwavenumbers
+        else:
+           raise ValueError
+
+  
+    def cannonical_bfrq(self):
         """
         Desc:
-        Transforms frequency to horizontal wave number through 
-        the dispersion relation
-        Parameters:
-            omega : frequency of the wave
-            m     : the vertical mode number
+        Cannonical example of a mid ocean Brunt Viasala frequency
+        depth profile. Mainly for testing purposes
         """
-        hwavenumbers = np.zeros([self.num_modes,len(freqs)])
-        for m in range(self.num_modes):
-            for f,freq in enumerate(freqs):
-                hwavenumbers[m,f] = self.invert_for_frequency(freq,m)
-        return hwavenumbers
-
-
-    def invert_for_frequency(self,freq,m):
-        """
-        Desc:
-        Transforms an individual frequncy to a wavenumber via
-        dispersion curve that has been generated
-        """
-        krange = [20*np.pi/(wl+0.1) for wl in self.range]
-        if self.dispcurves is None:
-           self.construct_dispersion_curves()
-        f =  self.dispcurves[m]
-        fshift = lambda x : f(x) - freq
-        try:
-            sol = scipy.optimize.fsolve(fshift,krange[-1])
-            print(sol)
-            return sol
-        except ValueError:
-            return -1
-        
+        d = max(self.depth)
+        sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
+        N     = np.sqrt(np.gradient(sigma))/5.0
+        return N         

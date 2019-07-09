@@ -33,6 +33,7 @@ class iw_vmodes:
         self.N = N
         self.modes = []
         self.freqs = []
+        self.hwavenumbers = []
     
 
     def gen_vmodes_wkb(self,j):
@@ -67,7 +68,7 @@ class iw_vmodes:
             return
 
 
-    def gen_vmodes_evp(self,k=2*np.pi):
+    def gen_vmodes_evp_k(self,k=2*np.pi):
         """
         Desc : Solves helmoltz equation using an EVP solver 
                techique  
@@ -89,11 +90,39 @@ class iw_vmodes:
         N2   = np.diag(self.N)
         
         #Eigen value problem IW equation
-        w,vr = eig(-N2,(D2-K2))
+        lamb,vr = eig(-N2,(D2-K2))
  
         self.modes  = [ vr[:,m] for m in np.arange(0,len(vr)) ]
-        self.freqs = np.sqrt(w)*k 
-        return w,vr
+        self.freqs = np.sqrt(lamb)*k 
+        return lamb,vr
+   
+ 
+    def gen_vmodes_evp_f(self,f=2*np.pi):
+        """
+        Desc : Solves helmoltz equation using an EVP solver 
+               techique  
+        Args :
+               f : float 
+                 Radial frequency , default 2pi
+        Returns:
+               solution : array
+                 A solution as a function of the depth coordinate
+        """
+        #Physical Properties
+        H  = len(self.depth)
+        delta = (self.depth[H-1] - self.depth[0])/H
+        fsq = (f)**2
+        
+        #FDM stencil for centered second derivative
+        D2  = self.gen_tri_fdm(H,delta)
+        F2  = np.diag(np.ones(len(self.N))*fsq)
+        N2  = np.diag(self.N)
+        
+        #Eigen value problem IW equation
+        lamb,vr = eig((F2-N2),D2)
+        self.modes        = [ vr[:,m] for m in np.arange(0,len(vr)) ]
+        self.hwavenumbers =  f / np.sqrt(lamb)
+        return lamb,vr
 
 
     #Consider making this more generic

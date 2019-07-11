@@ -17,7 +17,7 @@ class InternalWaveField:
 
     """
 
-    def __init__(self,freqs=[],hwavenumbers=np.array([]),
+    def __init__(self,freqs=np.array([]),hwavenumbers=np.array([]),
                  bfrq=np.array([]), alpha=0.5,num_modes=1,npoints=(100,50)):
         
         if not freqs.size and not hwavenumbers.size:
@@ -36,22 +36,36 @@ class InternalWaveField:
         #Compute 2D field from phase speeds and structure functions
         self.construct_field()
     
-
+    #TODO multi-plex between a frequency space and k space input
     def construct_field(self):
         """
         Desc:
         Constructs a 2D wave field from the vertical and horizontal
         components by taking an outer product of the two vectors
         """
-        pass
+        for n in range(self.freqs.shape[1]):
+            zeta = self.construct_field_component(n)
+            self.field += zeta   
 
-    
+    def construct_field_component(self,n):
+        zeta = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
+        for m in range(self.num_modes):
+            k = self.hwavenumbers[m,n]
+            phi  = self.vertical_comp[:,m,n]
+            rp  = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
+            psi = np.exp(2*np.pi*1j * k * self.range) 
+            psi = np.multiply(psi,rp)
+            zeta += np.outer(phi,psi)
+        return zeta 
+
+
     def set_attributes(self,bfrq,alpha,num_modes,npoints):
         self.depth = np.linspace(0,alpha,npoints[0])
         self.range = np.linspace(0,1,npoints[1])
         self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
         self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.num_modes = num_modes
+        self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
 
 
     def init_dispersion(self,freqs,hwavenumbers):
@@ -114,17 +128,16 @@ class InternalWaveField:
             for itr,ivar in enumerate(independent_vars):
                 if isfreqs:
                     cp,vr = self.vmodes.gen_vmodes_evp_f(ivar)
-                    #dependent_vars.append( ivar/np.sqrt( abs(cp[m].real)))
                     dependent_vars.append( ivar/np.sqrt( cp[m]))
                     self.vertical_comp[:,:,itr] = vr
                 else:
                     cp,vr = self.vmodes.gen_vmodes_evp_k(ivar)
-                    dependent_vars.append( np.sqrt(cp[m].real)*ivar )
+                    dependent_vars.append( np.sqrt(cp[m])*ivar )
                     self.vertical_comp[:,:,itr] = vr
                     
             f = interpolate.interp1d(independent_vars,dependent_vars,kind='cubic')
             self.dispcurves.append(f)
-     
+   
  
     def transform_wavenumber_to_frequencies(self,hwavenumbers):
         if self.dispcurves:
@@ -151,4 +164,8 @@ class InternalWaveField:
         d = max(self.depth)
         sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
         N     = np.sqrt(np.gradient(sigma))/5.0
-        return N         
+        return N
+
+    def plot_field(self,f,ax):
+        p = ax.contourf(self.field.real)
+        f.colorbar(p,cmap='jet')         

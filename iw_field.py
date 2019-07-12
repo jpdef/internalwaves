@@ -18,7 +18,7 @@ class InternalWaveField:
     """
 
     def __init__(self,freqs=np.array([]),hwavenumbers=np.array([]),
-                 bfrq=np.array([]), alpha=0.5,num_modes=1,npoints=(100,50)):
+                 bfrq=np.array([]), alpha=0.5,modes=np.array([1]),npoints=(100,50)):
         
         if not freqs.size and not hwavenumbers.size:
             print("""Internal Wave field needs a set of frequencies 
@@ -28,43 +28,79 @@ class InternalWaveField:
             print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,alpha,num_modes,npoints)        
+        self.set_attributes(bfrq,alpha,modes,npoints)        
         
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,hwavenumbers)
 
         #Compute 2D field from phase speeds and structure functions
-        self.construct_field()
+        self.field = self.construct_field(freqs,hwavenumbers)
     
-    #TODO multi-plex between a frequency space and k space input
-    def construct_field(self):
+    def construct_field(self,freqs,hwavenumbers):
         """
         Desc:
         Constructs a 2D wave field from the vertical and horizontal
         components by taking an outer product of the two vectors
         """
+        if freqs.size and not hwavenumbers.size:
+           return self.construct_field_from_freqs()
+        elif hwavenumbers.size and not freqs.size:
+           return self.construct_field_from_wavenumbers()
+
+    
+    def construct_field_from_freqs(self):
+        """
+        Desc:
+        Constructs a 2D wave field from the vertical and horizontal
+        components by taking an outer product of the two vectors
+        """
+        field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
         for n in range(self.freqs.shape[1]):
             zeta = self.construct_field_component(n)
-            self.field += zeta   
+            field += zeta 
+        return field   
+ 
+    def construct_field_from_wavenumbers(self):
+        """
+        Desc:
+        Constructs a 2D wave field from the vertical and horizontal
+        components by taking an outer product of the two vectors
+        """
+        field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
+        for n in range(self.hwavenumbers.shape[1]):
+            zeta = self.construct_field_component(n)
+            field += zeta 
+        return field
+
 
     def construct_field_component(self,n):
+        """
+        Desc:
+        Constructs a 2D wave field componenent for a specific frequency/wavenumber
+        depending on the choosen dependent variable. These components are then summed
+        to give the total wavefield.
+        """
         zeta = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
-        for m in range(self.num_modes):
-            k = self.hwavenumbers[m,n]
-            phi  = self.vertical_comp[:,m,n]
-            rp  = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
-            psi = np.exp(2*np.pi*1j * k * self.range) 
-            psi = np.multiply(psi,rp)
+        for i,m in enumerate(self.modes):
+            k     = self.hwavenumbers[i,n]
+            phi   = self.vertical_comp[:,m,n]
+            rp    = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
+            psi   = np.multiply( rp , np.exp(2*np.pi*1j * k * self.range) )
             zeta += np.outer(phi,psi)
         return zeta 
 
 
-    def set_attributes(self,bfrq,alpha,num_modes,npoints):
+    def set_attributes(self,bfrq,alpha,modes,npoints):
+        """
+        Desc:
+        Helper function for constructor to set all the various fields
+        """
         self.depth = np.linspace(0,alpha,npoints[0])
         self.range = np.linspace(0,1,npoints[1])
         self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
         self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
-        self.num_modes = num_modes
+        self.modes = modes
+        self.alpha = alpha
         self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
 
 
@@ -80,13 +116,13 @@ class InternalWaveField:
             print("Field with input of frequencies")
             nf = len(freqs)
             self.vertical_comp = np.ndarray(shape=(D,D,nf ) )
-            self.freqs = np.tile(freqs,(self.num_modes,1))
+            self.freqs = np.tile(freqs,( len(self.modes) , 1))
             self.hwavenumbers = self.construct_hwavenumbers(freqs)
         elif hwavenumbers.size and not freqs.size:
             print("Field with input of wavenumbers")
             nk = len(hwavenumbers)
             self.vertical_comp = ndarray(shape=(D,D,nk) )
-            self.hwavenumbers = np.tile(hwavenumbers,(self.num_modes,1))
+            self.hwavenumbers = np.tile(hwavenumbers,( len(self.modes) ,1))
             self.freqs = self.construct_frequencies(hwavenumbers)
 
 
@@ -123,7 +159,7 @@ class InternalWaveField:
         the vertical mode solver. 
         """
         self.dispcurves=[]
-        for m in range(self.num_modes):
+        for m in self.modes:
             dependent_vars = []
             for itr,ivar in enumerate(independent_vars):
                 if isfreqs:

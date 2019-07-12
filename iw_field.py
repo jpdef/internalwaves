@@ -6,6 +6,8 @@
 import matplotlib.pyplot as plt
 import iw_vmodes as iwvm
 import scipy
+import feather
+import pandas as pd
 from scipy import interpolate
 import numpy as np
 
@@ -176,6 +178,11 @@ class InternalWaveField:
    
  
     def transform_wavenumber_to_frequencies(self,hwavenumbers):
+        """
+        Desc:
+        Converts  horizontal wavenumbers to frequencies using
+        the precomputed dispersion curves
+        """
         if self.dispcurves:
             freqs = np.vstack( [ f(hwavenumbers) for f in self.dispcurves ])
             return freqs
@@ -184,6 +191,11 @@ class InternalWaveField:
    
  
     def transform_frequencies_to_wavenumber(self,freqs):
+        """
+        Desc:
+        Converts frequencies to horizontal wavenumbers using
+        the precomputed dispersion curves
+        """
         if self.dispcurves:
            hwavenumbers = np.vstack( [ f(freqs) for f in self.dispcurves ])
            return hwavenumbers
@@ -202,6 +214,24 @@ class InternalWaveField:
         N     = np.sqrt(np.gradient(sigma))/5.0
         return N
 
-    def plot_field(self,f,ax):
-        p = ax.contourf(self.field.real)
-        f.colorbar(p,cmap='jet')         
+
+    def to_dataframe(self):
+        """
+        Desc:
+        Converts the 2D array internal wave field to a panda's
+        dataframe for use and convience
+        """
+       zeta= self.field.real.flatten()
+       x   = np.ndarray(shape=(1,),dtype=float)
+       z   = np.ndarray(shape=(1,),dtype=float)
+       
+       for i,zi in enumerate(self.depth):
+           x = self.range if i==0 else np.concatenate( (x, self.range) )
+           
+       for i,zi in enumerate(self.depth):
+           if (i==0): 
+               z = zi*np.ones(len(self.range)) 
+           else: 
+               z = np.concatenate( (z, zi*np.ones(len(self.range)) ) )
+        
+       return pd.DataFrame({"range" : x , "depth" : z , "disp" : zeta})

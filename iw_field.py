@@ -14,13 +14,14 @@ import numpy as np
 class InternalWaveField:
     """
     Desc: 
-    A class to generate internal wave field modes via different
+    A class to generate internal wave fi/seteld modes via different
     numerical methods
 
     """
 
-    def __init__(self,freqs=np.array([]),hwavenumbers=np.array([]),
-                 bfrq=np.array([]), alpha=0.5,modes=np.array([1]),npoints=(100,50)):
+    def __init__(self,freqs=np.array([]), hwavenumbers=np.array([]),
+                 weights=np.array([]), bfrq=np.array([]), aspect_ratio=0.5,
+                 modes=np.array([1]),npoints=(100,50)):
         
         if not freqs.size and not hwavenumbers.size:
             print("""Internal Wave field needs a set of frequencies 
@@ -30,10 +31,10 @@ class InternalWaveField:
             print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,alpha,modes,npoints)        
+        self.set_attributes(bfrq,aspect_ratio,modes,npoints)        
         
         #Compute phase speeds and vertical structure functions
-        self.init_dispersion(freqs,hwavenumbers)
+        self.init_dispersion(freqs,hwavenumbers,weights)
 
         #Compute 2D field from phase speeds and structure functions
         self.field = self.construct_field(freqs,hwavenumbers)
@@ -57,9 +58,12 @@ class InternalWaveField:
         components by taking an outer product of the two vectors
         """
         field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
-        for n in range(self.freqs.shape[1]):
-            zeta = self.construct_field_component(n)
-            field += zeta 
+        if not self.field_components:
+            self.construct_field_components(self.freqs.shape[1]) 
+        
+        for n,f in enumerate(self.field_components):
+           field += self.weights[n]*f
+        
         return field   
  
     def construct_field_from_wavenumbers(self):
@@ -69,11 +73,22 @@ class InternalWaveField:
         components by taking an outer product of the two vectors
         """
         field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
-        for n in range(self.hwavenumbers.shape[1]):
-            zeta = self.construct_field_component(n)
-            field += zeta 
-        return field
+        if not self.field_components:
+            self.construct_field_components(self.hwavenumber.shape[1]) 
 
+        for n,f in enumerate(self.field_components):
+           field += self.weights[n]*f
+ 
+        return field
+  
+    def construct_field_components(self,number_of_components):
+        """
+        Desc:
+        Fills list of 2D array with the modal components that sum to 
+        make the total field. Components are stored for efficiency
+        """
+        for n in range(number_of_components):
+            self.field_components.append(self.construct_field_component(n))
 
     def construct_field_component(self,n):
         """
@@ -86,27 +101,29 @@ class InternalWaveField:
         for i,m in enumerate(self.modes):
             k     = self.hwavenumbers[i,n]
             phi   = self.vertical_comp[:,m,n]
-            rp    = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
-            psi   = np.multiply( rp , np.exp(2*np.pi*1j * k * self.range) )
+            #rp    = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
+            rp    = np.pi*np.ones(len(self.range))
+            psi   = np.multiply( rp , np.exp(2*np.pi*1j * k * (self.range - 0.2)  ) )
             zeta += np.outer(phi,psi)
-        return zeta 
+        return ( zeta / len(self.modes) ) 
 
 
-    def set_attributes(self,bfrq,alpha,modes,npoints):
+    def set_attributes(self,bfrq,aspect_ratio,modes,npoints):
         """
         Desc:
         Helper function for constructor to set all the various fields
         """
-        self.depth = np.linspace(0,alpha,npoints[0])
+        self.depth = np.linspace(0,aspect_ratio,npoints[0])
         self.range = np.linspace(0,1,npoints[1])
         self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
         self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.modes = modes
-        self.alpha = alpha
+        self.aspect_ratio = aspect_ratio
+        self.field_components = [] 
         self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
 
 
-    def init_dispersion(self,freqs,hwavenumbers):
+    def init_dispersion(self,freqs,hwavenumbers,weights):
         """
         self.vertical_component[z_n, m, f_n] 
             z_n depth grid point for vertical functions
@@ -120,12 +137,14 @@ class InternalWaveField:
             self.vertical_comp = np.ndarray(shape=(D,D,nf ) )
             self.freqs = np.tile(freqs,( len(self.modes) , 1))
             self.hwavenumbers = self.construct_hwavenumbers(freqs)
+            self.weights = weights if weights.size else np.ones(nf)
         elif hwavenumbers.size and not freqs.size:
             print("Field with input of wavenumbers")
             nk = len(hwavenumbers)
             self.vertical_comp = ndarray(shape=(D,D,nk) )
             self.hwavenumbers = np.tile(hwavenumbers,( len(self.modes) ,1))
             self.freqs = self.construct_frequencies(hwavenumbers)
+            self.weights = weights if weights.size else np.ones(nk)
 
 
     def construct_hwavenumbers(self,freqs):
@@ -202,7 +221,17 @@ class InternalWaveField:
         else:
            raise ValueError
 
-  
+    def update_field(self,new_weights):
+        """
+        Desc:
+        Efficient way to timestep or change distrubution after having calculated all
+        the horizontal and vertical components
+        """
+        self.weights = new_weights
+        self.field   = self.construct_field(freqs=self.freqs[0],hwavenumbers=np.array([]))
+         
+
+ 
     def cannonical_bfrq(self):
         """
         Desc:
@@ -221,17 +250,17 @@ class InternalWaveField:
         Converts the 2D array internal wave field to a panda's
         dataframe for use and convience
         """
-       zeta= self.field.real.flatten()
-       x   = np.ndarray(shape=(1,),dtype=float)
-       z   = np.ndarray(shape=(1,),dtype=float)
+        zeta = self.field.real.flatten()
+        x    = np.ndarray(shape=(1,),dtype=float)
+        z    = np.ndarray(shape=(1,),dtype=float)
        
-       for i,zi in enumerate(self.depth):
-           x = self.range if i==0 else np.concatenate( (x, self.range) )
+        for i,zi in enumerate(self.depth):
+            x = self.range if i==0 else np.concatenate( (x, self.range) )
            
-       for i,zi in enumerate(self.depth):
-           if (i==0): 
-               z = zi*np.ones(len(self.range)) 
-           else: 
-               z = np.concatenate( (z, zi*np.ones(len(self.range)) ) )
+        for i,zi in enumerate(self.depth):
+            if (i==0): 
+                z = zi*np.ones(len(self.range)) 
+            else: 
+                z = np.concatenate( (z, zi*np.ones(len(self.range)) ) )
         
-       return pd.DataFrame({"range" : x , "depth" : z , "disp" : zeta})
+        return pd.DataFrame({"range" : x , "depth" : z , "disp" : zeta})

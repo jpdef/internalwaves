@@ -91,6 +91,9 @@ class iw_vmodes:
         
         #Eigen value problem IW equation
         lamb,vr = eig(-N2,(D2-K2))
+
+        #Normalize
+        vr = self.normalize(vr)
  
         self.modes  = [ vr[:,m] for m in np.arange(0,len(vr)) ]
         self.freqs = np.sqrt(lamb)*k 
@@ -120,11 +123,26 @@ class iw_vmodes:
         
         #Eigen value problem IW equation
         lamb,vr = eig((F2-N2),D2)
+        
+        #Normalize
+        vr = self.normalize(vr)
+
         self.modes        = [ vr[:,m] for m in np.arange(0,len(vr)) ]
         self.hwavenumbers =  f / np.sqrt(lamb)
         return lamb,vr
 
+    def normalize(self,vr):
+        """
+        Desc : 
+        Normalizes each mode structure by taking the potential energy
+        depth integral to be 1
+        """
+        for m in range(vr.shape[1]):
+            A = np.sqrt( 1.0/np.sum((vr[:,m]**2)*(self.N)**2) )
+            vr[:,m] = A*vr[:,m]
+        return vr
 
+    
     #Consider making this more generic
     def gen_tri_fdm(self,N,delta):
         """

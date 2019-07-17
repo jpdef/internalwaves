@@ -9,7 +9,10 @@ from iw_field import InternalWaveField
 import numpy as np
 import sys
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+import cmocean
+import functools
 
 class InternalWaveSimulation:
     """
@@ -21,9 +24,11 @@ class InternalWaveSimulation:
 
     def __init__(self,timeaxis,iwf,ftype=0,dpath="",fname=""):
         self.frames = []
+        self.fields = []
         self.timeaxis = timeaxis
         self.iwf = iwf
         self.ftype = ftype
+        self.delta_t = max(self.timeaxis)/(len(self.timeaxis)-1)
         self.dpath = dpath if dpath else os.getcwd()
         if not os.path.exists(self.dpath):
             os.mkdir(self.dpath)
@@ -34,9 +39,10 @@ class InternalWaveSimulation:
     def run(self):
         print("Running simulation")
         for i,t in tqdm(enumerate(self.timeaxis),ascii=True,total=len(self.timeaxis),leave=True):
-            step = self.make_step()
+            step = self.make_step(t)
             self.iwf.update_field(step)
             self.frames.append(self.iwf.to_dataframe())
+            self.fields.append(self.iwf.field)
         sys.stdout.flush()
         print("\n")
         
@@ -45,8 +51,8 @@ class InternalWaveSimulation:
         sys.stdout.flush()
         print("\n")
 
-    def make_step(self):
-        waves = np.array( [np.exp(2*np.pi*1j*f) for f in self.iwf.freqs[0]])
+    def make_step(self,t):
+        waves = np.array( [np.exp(-2*np.pi*1j*f*t) for f in self.iwf.freqs[0]])
         step = np.multiply(self.iwf.weights,waves)
         return step
     
@@ -63,7 +69,9 @@ class InternalWaveSimulation:
 
     def make_featherfiles(self):
         for t,f in tqdm(enumerate(self.frames),ascii=True,total=len(self.frames),leave=True):
-            fname = "%s-%d.fthr" % ( self.fname, t)
+            zero_padding = int(np.floor( np.log10(len(self.timeaxis)) ) + 1)
+            fmt = '{:0>' + str(zero_padding) + '}'
+            fname = "%s-%s.fthr" % ( self.fname, fmt.format(t))
             path = os.path.join(self.dpath,fname)
             feather.write_dataframe(f,path) 
 
@@ -73,8 +81,46 @@ class InternalWaveSimulation:
 
     
     def make_animation(self):
-        pass
+        fig, ax = plt.subplots()
+        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        dist  = 10*self.iwf.range
+        depth = 10*self.iwf.depth
+        self.set_animation_attributes(fig,ax) 
+        
+        #First Frame
+        zeros  = np.zeros(shape=self.iwf.field.shape)
+        p = ax.contourf(dist,depth,zeros,20,cmap=cmocean.cm.thermal)
+        
+        #Init and update function
+        init = functools.partial(self.init_animation,fig,ax,p,cbar_ax)
+        update = functools.partial(self.update_animation,fig,ax,cbar_ax)
+       
+        #Compile Animation
+        ani = FuncAnimation(fig, update, frames=np.arange(0,len(self.timeaxis),1),init_func=init, blit=False)
+        path = os.path.join(self.dpath,'animation.mp4')
+        ani.save(path)
 
+
+    def set_animation_attributes(self,fig,ax):
+        ax.invert_yaxis()
+        ax.set_xlabel('Range Km')
+        ax.set_ylabel('Depth Km')
+        
+    def init_animation(self,fig,ax,p,cbar_ax):
+        fig.subplots_adjust(right=0.8)
+        cbar = fig.colorbar(p, cax=cbar_ax)
+        cbar.set_label('Displacement (m)')
+        return p
+
+    def update_animation(self,fig,ax,cbar_ax,frame):
+        ax.set_title('%.2f hours' % np.multiply(frame,self.delta_t))
+        field = self.fields[frame]
+        dist  = 10*self.iwf.range
+        depth = 10*self.iwf.depth
+        p = ax.contourf(dist,depth,field.real,20,cmap=cmocean.cm.thermal)
+        cbar_ax.cla()
+        fig.colorbar(p, cax=cbar_ax)
+        return p
 
     def compute_file_size(self):
         pass

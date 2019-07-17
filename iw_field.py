@@ -20,7 +20,8 @@ class InternalWaveField:
     """
 
     def __init__(self,freqs=np.array([]), hwavenumbers=np.array([]),
-                 weights=np.array([]), bfrq=np.array([]), aspect_ratio=0.5,
+                 weights=np.array([]), bfrq=np.array([]), 
+                 aspect_ratio=0.5,randomphase=True,offset=0,
                  modes=np.array([1]),npoints=(100,50)):
         
         if not freqs.size and not hwavenumbers.size:
@@ -31,7 +32,7 @@ class InternalWaveField:
             print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,aspect_ratio,modes,npoints)        
+        self.set_attributes(bfrq,aspect_ratio,modes,npoints,randomphase,offset)        
         
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,hwavenumbers,weights)
@@ -51,7 +52,7 @@ class InternalWaveField:
            return self.construct_field_from_wavenumbers()
 
     
-    def construct_field_from_freqs(self):
+    def construct_field_from_freqs(self,new_weights=np.array([])):
         """
         Desc:
         Constructs a 2D wave field from the vertical and horizontal
@@ -62,7 +63,7 @@ class InternalWaveField:
             self.construct_field_components(self.freqs.shape[1]) 
         
         for n,f in enumerate(self.field_components):
-           field += self.weights[n]*f
+           field += new_weights[n]*f if new_weights.size else self.weights[n]*f
         
         return field   
  
@@ -101,14 +102,16 @@ class InternalWaveField:
         for i,m in enumerate(self.modes):
             k     = self.hwavenumbers[i,n]
             phi   = self.vertical_comp[:,m,n]
-            #rp    = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
-            rp    = np.pi*np.ones(len(self.range))
-            psi   = np.multiply( rp , np.exp(2*np.pi*1j * k * (self.range - 0.2)  ) )
+            if self.randomphase:
+                psi   = np.multiply( self.rp , np.exp(2*np.pi*1j * k * (self.range - self.offset)  ) )
+            else:
+                psi   = np.exp(2*np.pi*1j * k * (self.range - self.offset)  )
             zeta += np.outer(phi,psi)
         return ( zeta / len(self.modes) ) 
 
 
-    def set_attributes(self,bfrq,aspect_ratio,modes,npoints):
+    def set_attributes(self,bfrq,aspect_ratio,modes,npoints,
+                       randomphase,offset):
         """
         Desc:
         Helper function for constructor to set all the various fields
@@ -119,6 +122,9 @@ class InternalWaveField:
         self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.modes = modes
         self.aspect_ratio = aspect_ratio
+        self.randomphase = randomphase
+        self.rp = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
+        self.offset = offset
         self.field_components = [] 
         self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
 
@@ -227,9 +233,7 @@ class InternalWaveField:
         Efficient way to timestep or change distrubution after having calculated all
         the horizontal and vertical components
         """
-        self.weights = new_weights
-        self.field   = self.construct_field(freqs=self.freqs[0],hwavenumbers=np.array([]))
-         
+        self.field = self.construct_field_from_freqs(new_weights)
 
  
     def cannonical_bfrq(self):

@@ -198,8 +198,11 @@ class InternalWaveField:
                     dependent_vars.append( np.sqrt(cp[m])*ivar )
                     self.vertical_comp[:,:,itr] = vr
                     
-            f = interpolate.interp1d(independent_vars,dependent_vars,kind='cubic')
-            self.dispcurves.append(f)
+            #f = interpolate.interp1d(independent_vars,dependent_vars,kind='cubic')
+            #Using dictionary instead of interpolation so we can have small sets
+            #of frequencies that the interpolation cannot support
+            d  = dict(zip (independent_vars, dependent_vars ))
+            self.dispcurves.append(d)
    
  
     def transform_wavenumber_to_frequencies(self,hwavenumbers):
@@ -208,11 +211,13 @@ class InternalWaveField:
         Converts  horizontal wavenumbers to frequencies using
         the precomputed dispersion curves
         """
+        freqs = []
         if self.dispcurves:
-            freqs = np.vstack( [ f(hwavenumbers) for f in self.dispcurves ])
-            return freqs
+            for d in self.dispcurves:
+                freqs.append([ d[h] for h in hwavenumbers ])
+            return np.vstack(freqs)
         else:
-           raise ValueError
+           raise KeyError
    
  
     def transform_frequencies_to_wavenumber(self,freqs):
@@ -221,11 +226,13 @@ class InternalWaveField:
         Converts frequencies to horizontal wavenumbers using
         the precomputed dispersion curves
         """
+        hwavenumbers = []
         if self.dispcurves:
-           hwavenumbers = np.vstack( [ f(freqs) for f in self.dispcurves ])
-           return hwavenumbers
+           for d in self.dispcurves:
+               hwavenumbers.append( [ d[f] for f in freqs] )    
+           return np.vstack(hwavenumbers)
         else:
-           raise ValueError
+           raise KeyError
 
     def update_field(self,new_weights):
         """

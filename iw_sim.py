@@ -5,6 +5,7 @@
 
 import feather
 import os
+import pandas as pd
 from iw_field import InternalWaveField 
 import numpy as np
 import sys
@@ -32,24 +33,51 @@ class InternalWaveSimulation:
         self.dpath = dpath if dpath else os.getcwd()
         if not os.path.exists(self.dpath):
             os.mkdir(self.dpath)
-        print(self.dpath)
+        print("Datafile directory: ",self.dpath)
         self.fname = fname if fname else "iwfsim"
 
 
     def run(self):
-        print("Running simulation")
-        for i,t in tqdm(enumerate(self.timeaxis),ascii=True,total=len(self.timeaxis),leave=True):
+        if len(self.timeaxis) > 1000:
+            chunk_size = int( np.floor(len(self.timeaxis)/1000) )
+            timechunks = self.make_chunks(chunk_size)
+            for i,tc in self.progressbar(timechunks, "Long Simulation"):
+                self.timeaxis = tc
+                self.simulate()
+                self.make_files(offset=i*chunk_size)
+                self.fields = []
+                self.frames = [] 
+       
+        else:
+            self.simulate()
+            self.make_files()
+     
+    def simulate(self):
+        for i,t in self.progressbar(self.timeaxis,"Simulating"):
             step = self.make_step(t)
             self.iwf.update_field(step)
             self.frames.append(self.iwf.to_dataframe())
             self.fields.append(self.iwf.field)
-        sys.stdout.flush()
-        print("\n")
-        
-        print("Writing to disk")
-        self.make_files()
-        sys.stdout.flush()
-        print("\n")
+
+
+    def progressbar(self,dataset,desc):
+        iterator = enumerate(dataset)
+        return tqdm(iterator,ascii=True,total=len(dataset),leave=True,desc=desc)
+
+ 
+    def make_chunks(self,chunk_size):
+        timechunks = []
+        back_itr = 0
+        forward_itr=chunk_size
+        while forward_itr < len(self.timeaxis):
+             timechunks.append( self.timeaxis[back_itr : forward_itr] )
+             back_itr=forward_itr
+             forward_itr += chunk_size
+        #Remainder
+        timechunks.append( self.timeaxis[back_itr:] ) 
+
+        return timechunks
+
 
     def make_step(self,t):
         waves = np.array( [np.exp(-2*np.pi*1j*f*t) for f in self.iwf.freqs[0]])
@@ -57,9 +85,9 @@ class InternalWaveSimulation:
         return step
     
     
-    def make_files(self):
+    def make_files(self,offset=0):
         if  self.ftype==0:
-            self.make_featherfiles()
+            self.make_featherfiles(offset)
         
         elif self.ftype==1:
             self.make_csvfiles()
@@ -67,13 +95,20 @@ class InternalWaveSimulation:
         elif self.ftype==2:
             self.make_animation()
 
-    def make_featherfiles(self):
-        for t,f in tqdm(enumerate(self.frames),ascii=True,total=len(self.frames),leave=True):
+    def make_featherfiles(self,offset=0):
+        for t,f in self.progressbar(self.frames,"Writing to Disk"):
             zero_padding = int(np.floor( np.log10(len(self.timeaxis)) ) + 1)
             fmt = '{:0>' + str(zero_padding) + '}'
-            fname = "%s-%s.fthr" % ( self.fname, fmt.format(t))
+            fname = "%s-%s.fthr" % ( self.fname, fmt.format(t+offset) )
             path = os.path.join(self.dpath,fname)
             feather.write_dataframe(f,path) 
+
+    def make_metadata_file(self):
+        #Write a file contain the time axis
+        fname = "timeaxis.fthr"
+        path = os.path.join(self.dpath,fname)
+        f = pd.DataFrame({'time' : self.timeaxis})
+        feather.write_dataframe(f,path) 
 
 
     def make_csvfiles(self):
@@ -96,6 +131,7 @@ class InternalWaveSimulation:
         update = functools.partial(self.update_animation,fig,ax,cbar_ax)
        
         #Compile Animation
+        print("Creating Animation it may take awhile")
         ani = FuncAnimation(fig, update, frames=np.arange(0,len(self.timeaxis),1),init_func=init, blit=False)
         path = os.path.join(self.dpath,'animation.mp4')
         ani.save(path)

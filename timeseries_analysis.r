@@ -45,7 +45,7 @@ ts_compare_plot<-function(path,zpos,xpos1,xpos2){
     lines(ts2,col='red')
     
     legend("topleft",
-           legend=c(paste("X =",xpos1), paste("X =",xpos2)),
+           legend=c(paste("X =",xpos1/10,"km"), paste("X =",xpos2/10,"km")),
            col=c("red", "blue"),
            lty=c(1,1),
            cex=0.7) 
@@ -64,10 +64,11 @@ max_min <- function(ts1,ts2){
 crosscor<-function(path,zpos,xpos1,xpos2){
     ts1 <- time_series(path,zpos,xpos1)
     ts2 <- time_series(path,zpos,xpos2)
+
     
-    print(cor(ts1,ts2))
+    rho = ccf(ts1$disp,ts2$disp,plot=FALSE)
     
-    maxlag  = length(ts1)/2 -1
-    rho = ccf(ts1,ts2,plot=TRUE)
-    #plot(rho$lag[700:1400]*.1,rho[rho$lag[700:1400]]$acf,type='l',xlab="Time Lag (hours)",ylab='Cross-Correlation')
+    plot(rho$lag,rho$acf,col='black',type='h',
+         xlab="Lag", ylab="Correlation") 
+    title(path)
 }

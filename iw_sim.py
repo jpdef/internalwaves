@@ -31,6 +31,7 @@ class InternalWaveSimulation:
         self.ftype = ftype
         self.delta_t = max(self.timeaxis)/(len(self.timeaxis)-1)
         self.dpath = dpath if dpath else os.getcwd()
+        self.zero_padding = int(np.floor( np.log10(len(self.timeaxis)) ) + 1)
         if not os.path.exists(self.dpath):
             os.mkdir(self.dpath)
         print("Datafile directory: ",self.dpath)
@@ -97,8 +98,7 @@ class InternalWaveSimulation:
 
     def make_featherfiles(self,offset=0):
         for t,f in self.progressbar(self.frames,"Writing to Disk"):
-            zero_padding = int(np.floor( np.log10(len(self.timeaxis)) ) + 1)
-            fmt = '{:0>' + str(zero_padding) + '}'
+            fmt = '{:0>' + str(self.zero_padding) + '}'
             fname = "%s-%s.fthr" % ( self.fname, fmt.format(t+offset) )
             path = os.path.join(self.dpath,fname)
             feather.write_dataframe(f,path) 

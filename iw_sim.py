@@ -30,7 +30,7 @@ class InternalWaveSimulation:
         self.timeaxis = timeaxis
         self.iwf = iwf
         self.ftype = ftype
-        self.delta_t = max(self.timeaxis)/(len(self.timeaxis)-1)
+        self.delta_t = max(self.timeaxis)/( (len(self.timeaxis)-1) * (3600) )
         self.dpath = dpath if dpath else os.getcwd()
         self.zero_padding = int(np.floor( np.log10(len(self.timeaxis)) ) + 1)
         if not os.path.exists(self.dpath):
@@ -125,10 +125,10 @@ class InternalWaveSimulation:
         #Write a file contain various parameters from simulation
         fname = "meta.fthr"
         path = os.path.join(self.dpath,fname)
-        f = pd.DataFrame({'time'  : self.timeaxis},
-                         {'range' : self.iwf.range},
-                         {'depth' : self.iwf.depth},
-                         {'bfrq'  : self.iwf.bfrq})
+        f = pd.DataFrame({'time'  : self.timeaxis,
+                         'range' : self.iwf.range,
+                         'depth' : self.iwf.depth,
+                         'bfrq'  : self.iwf.bfrq})
         feather.write_dataframe(f,path) 
 
 
@@ -139,8 +139,8 @@ class InternalWaveSimulation:
     def make_animation(self):
         fig, ax = plt.subplots()
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        dist  = 10*self.iwf.range
-        depth = 10*self.iwf.depth
+        dist  = self.iwf.range
+        depth = self.iwf.depth
         self.set_animation_attributes(fig,ax) 
         
         #First Frame
@@ -171,10 +171,10 @@ class InternalWaveSimulation:
 
     def update_animation(self,fig,ax,cbar_ax,frame):
         ax.set_title('%.2f hours' % np.multiply(frame,self.delta_t))
-        #field = self.fields[frame]
-        field = self.scalarfields[frame].real
-        dist  = 10*self.iwf.range
-        depth = 10*self.iwf.depth
+        field = self.fields[frame]
+        #field = self.scalarfields[frame].real
+        dist  = self.iwf.range
+        depth = self.iwf.depth
         p = ax.contourf(dist,depth,field.real,20,cmap=cmocean.cm.thermal)
         cbar_ax.cla()
         fig.colorbar(p, cax=cbar_ax)

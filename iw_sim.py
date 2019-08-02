@@ -139,8 +139,8 @@ class InternalWaveSimulation:
     def make_animation(self):
         fig, ax = plt.subplots()
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        dist  = self.iwf.range
-        depth = self.iwf.depth
+        dist  = self.iwf.range/1000
+        depth = self.iwf.depth/1000
         self.set_animation_attributes(fig,ax) 
         
         #First Frame

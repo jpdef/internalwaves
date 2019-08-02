@@ -35,9 +35,9 @@ time_series <- function(path,zpos,xpos){
         
     }
 
-    fname = paste(path,"timeaxis.fthr" , sep='/')
-    time <- read_feather(fname)
-    ts = data.frame(time=time,disp=values)
+    fname = paste(path,"meta.fthr" , sep='/')
+    meta <- read_feather(fname)
+    ts = data.frame(time=meta$time,disp=values)
    
     return(ts)
 }

@@ -122,10 +122,13 @@ class InternalWaveSimulation:
 
 
     def make_metadata_file(self):
-        #Write a file contain the time axis
-        fname = "timeaxis.fthr"
+        #Write a file contain various parameters from simulation
+        fname = "meta.fthr"
         path = os.path.join(self.dpath,fname)
-        f = pd.DataFrame({'time' : self.timeaxis})
+        f = pd.DataFrame({'time'  : self.timeaxis},
+                         {'range' : self.iwf.range},
+                         {'depth' : self.iwf.depth},
+                         {'bfrq'  : self.iwf.bfrq})
         feather.write_dataframe(f,path) 
 
 

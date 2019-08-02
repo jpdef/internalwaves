@@ -124,9 +124,6 @@ class iw_vmodes:
         #Eigen value problem IW equation
         lamb,vr = eig((F2-N2),D2)
         
-        #Normalize
-        #vr = self.normalize(vr)
-
         self.modes        = [ vr[:,m] for m in np.arange(0,len(vr)) ]
         self.hwavenumbers =  f / np.sqrt(lamb)
         return lamb,vr

@@ -14,15 +14,15 @@ import numpy as np
 class InternalWaveField:
     """
     Desc: 
-    A class to generate internal wave fi/seteld modes via different
-    numerical methods
-
+    A class to generate internal wave fields
     """
 
-    def __init__(self,freqs=np.array([]), hwavenumbers=np.array([]),
+    def __init__(self,iwrange,iwdepth,
+                 freqs=np.array([]), hwavenumbers=np.array([]),
                  weights=np.array([]), bfrq=np.array([]), 
-                 aspect_ratio=0.5,randomphase=True,offset=0,
-                 modes=np.array([1]),npoints=(100,50)):
+                 randomphase=True,offset=0,
+                 modes=np.array([1]),npoints=(100,50),
+                 scalarfield=np.array([])):
         
         if not freqs.size and not hwavenumbers.size:
             print("""Internal Wave field needs a set of frequencies 
@@ -32,13 +32,21 @@ class InternalWaveField:
             print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,aspect_ratio,modes,npoints,randomphase,offset)        
+        self.set_attributes(bfrq,iwrange,iwdepth,modes,npoints,randomphase,offset)        
         
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,hwavenumbers,weights)
 
         #Compute 2D field from phase speeds and structure functions
         self.field = self.construct_field(freqs,hwavenumbers)
+        
+        #Impose IWF on scalarfield (e.g. temperature)
+        if scalarfield.size:
+            self.scalarfield = scalarfield
+            self.scalarfield.distort(self.field)
+        else:
+            self.scalarfield = scalarfield
+
     
     def construct_field(self,freqs,hwavenumbers):
         """
@@ -66,6 +74,7 @@ class InternalWaveField:
            field += new_weights[n]*f if new_weights.size else self.weights[n]*f
         
         return field   
+
  
     def construct_field_from_wavenumbers(self):
         """
@@ -81,6 +90,7 @@ class InternalWaveField:
            field += self.weights[n]*f
  
         return field
+
   
     def construct_field_components(self,number_of_components):
         """
@@ -90,6 +100,7 @@ class InternalWaveField:
         """
         for n in range(number_of_components):
             self.field_components.append(self.construct_field_component(n))
+
 
     def construct_field_component(self,n):
         """
@@ -103,30 +114,12 @@ class InternalWaveField:
             k     = self.hwavenumbers[i,n]
             phi   = self.vertical_comp[:,m,n]
             if self.randomphase:
-                psi   = np.multiply( self.rp , np.exp(2*np.pi*1j * k * (self.range - self.offset)  ) )
+                rp  = 2*np.pi*np.random.rand()
+                psi = np.exp(2*np.pi*1j * k * (self.range - self.offset) + rp ) 
             else:
-                psi   = np.exp(2*np.pi*1j * k * (self.range - self.offset)  )
+                psi = np.exp(2*np.pi*1j * k * (self.range - self.offset)  )
             zeta += np.outer(phi,psi)
         return ( zeta / len(self.modes) ) 
-
-
-    def set_attributes(self,bfrq,aspect_ratio,modes,npoints,
-                       randomphase,offset):
-        """
-        Desc:
-        Helper function for constructor to set all the various fields
-        """
-        self.depth = np.linspace(0,aspect_ratio,npoints[0])
-        self.range = np.linspace(0,1,npoints[1])
-        self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
-        self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
-        self.modes = modes
-        self.aspect_ratio = aspect_ratio
-        self.randomphase = randomphase
-        self.rp = np.exp(2*np.pi*1j*np.random.rand(len(self.range)))
-        self.offset = offset
-        self.field_components = [] 
-        self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
 
 
     def init_dispersion(self,freqs,hwavenumbers,weights):
@@ -241,8 +234,27 @@ class InternalWaveField:
         the horizontal and vertical components
         """
         self.field = self.construct_field_from_freqs(new_weights)
+        if self.scalarfield.size:
+            self.scalarfield.distort(self.field)
 
  
+    def set_attributes(self,bfrq,iwrange,iwdepth,modes,npoints,
+                       randomphase,offset):
+        """
+        Desc:
+        Helper function for constructor to set all the various fields
+        """
+        self.range = iwrange
+        self.depth = iwdepth 
+        self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
+        self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
+        self.modes = modes
+        self.randomphase = randomphase
+        self.offset = offset
+        self.field_components = [] 
+        self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
+
+
     def cannonical_bfrq(self):
         """
         Desc:
@@ -252,7 +264,8 @@ class InternalWaveField:
         d = max(self.depth)
         sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
         N     = np.sqrt(np.gradient(sigma))/5.0
-        return N
+        cph   = 3600/(2*np.pi)
+        return N/cph
 
 
     def to_dataframe(self):

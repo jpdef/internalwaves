@@ -7,13 +7,19 @@ library(feather)
 library(ggplot2)
 
 
-depth_series <- function(df,xpos){
-    ret = df[ seq(xpos,nrow(df),100), ]
+depth_series <- function(path,time,xpos){
+    fname = paste('run-',time,'.fthr',sep="")
+    fpath = paste(path,fname,sep='/')
+    df    = read_feather(fpath)
+    return ( df[ seq(xpos,nrow(df),100), ] )
 }
 
 
-range_series <- function(df,zpos){
-    return (df[ seq(1+ 100*(zpos-1),100*zpos,1), ]$disp)
+range_series <- function(path,time,zpos){
+    fname = paste('run-',time,'.fthr',sep="")
+    fpath = paste(path,fname,sep='/')
+    df    = read_feather(fpath)
+    return (df[seq(1+ 100*(zpos-1),100*zpos,1), ])
 }
 
 
@@ -23,7 +29,9 @@ time_series <- function(path,zpos,xpos){
     for (file in list.files(path=path,pattern="^run")){
         fname = paste(path,file , sep='/')
         frame <- read_feather(fname)
-        values <- c(values,range_series(frame,zpos)[xpos])
+        slicedepth = frame[seq(1+ 100*(zpos-1),100*zpos,1), ]
+        slicerange = slicedepth[xpos,]
+        values <- c(values, slicerange$disp)
         
     }
 

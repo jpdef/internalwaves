@@ -125,12 +125,13 @@ class iw_vmodes:
         lamb,vr = eig((F2-N2),D2)
         
         #Normalize
-        vr = self.normalize(vr)
+        #vr = self.normalize(vr)
 
         self.modes        = [ vr[:,m] for m in np.arange(0,len(vr)) ]
         self.hwavenumbers =  f / np.sqrt(lamb)
         return lamb,vr
 
+    #Normalization might now work for model
     def normalize(self,vr):
         """
         Desc : 

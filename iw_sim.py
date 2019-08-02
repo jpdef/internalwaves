@@ -26,6 +26,7 @@ class InternalWaveSimulation:
     def __init__(self,timeaxis,iwf,ftype=0,dpath="",fname=""):
         self.frames = []
         self.fields = []
+        self.scalarfields = []
         self.timeaxis = timeaxis
         self.iwf = iwf
         self.ftype = ftype
@@ -59,9 +60,15 @@ class InternalWaveSimulation:
             self.iwf.update_field(step)
             self.frames.append(self.iwf.to_dataframe())
             self.fields.append(self.iwf.field)
+            #self.scalarfields.append(self.iwf.scalarfield.field)
 
 
     def progressbar(self,dataset,desc):
+        """
+        Desc:
+        Helper function that wraps the tqdm library to make 
+        function call shorter
+        """
         iterator = enumerate(dataset)
         return tqdm(iterator,ascii=True,total=len(dataset),leave=True,desc=desc)
 
@@ -81,12 +88,21 @@ class InternalWaveSimulation:
 
 
     def make_step(self,t):
+        """
+        Desc:
+        Modulates each frame with a e^(2pi i * f *t) where t is the
+        time input and the frequencies are known.
+        """
         waves = np.array( [np.exp(-2*np.pi*1j*f*t) for f in self.iwf.freqs[0]])
-        step = np.multiply(self.iwf.weights,waves)
+        step  = np.multiply(self.iwf.weights,waves)
         return step
     
     
     def make_files(self,offset=0):
+        """
+        Desc:
+        Multiplexes throug hthe various output types
+        """
         if  self.ftype==0:
             self.make_featherfiles(offset)
         
@@ -96,12 +112,14 @@ class InternalWaveSimulation:
         elif self.ftype==2:
             self.make_animation()
 
+
     def make_featherfiles(self,offset=0):
         for t,f in self.progressbar(self.frames,"Writing to Disk"):
             fmt = '{:0>' + str(self.zero_padding) + '}'
             fname = "%s-%s.fthr" % ( self.fname, fmt.format(t+offset) )
             path = os.path.join(self.dpath,fname)
             feather.write_dataframe(f,path) 
+
 
     def make_metadata_file(self):
         #Write a file contain the time axis
@@ -150,7 +168,8 @@ class InternalWaveSimulation:
 
     def update_animation(self,fig,ax,cbar_ax,frame):
         ax.set_title('%.2f hours' % np.multiply(frame,self.delta_t))
-        field = self.fields[frame]
+        #field = self.fields[frame]
+        field = self.scalarfields[frame].real
         dist  = 10*self.iwf.range
         depth = 10*self.iwf.depth
         p = ax.contourf(dist,depth,field.real,20,cmap=cmocean.cm.thermal)

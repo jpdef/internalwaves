@@ -21,7 +21,7 @@ class InternalWaveField:
                  freqs=np.array([]), hwavenumbers=np.array([]),
                  weights=np.array([]), bfrq=np.array([]), 
                  randomphase=True,offset=0,
-                 modes=np.array([1]),npoints=(100,50),
+                 modes=np.array([1]),
                  scalarfield=np.array([])):
         
         if not freqs.size and not hwavenumbers.size:
@@ -32,7 +32,7 @@ class InternalWaveField:
             print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,iwrange,iwdepth,modes,npoints,randomphase,offset)        
+        self.set_attributes(bfrq,iwrange,iwdepth,modes,randomphase,offset)        
         
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,hwavenumbers,weights)
@@ -238,8 +238,7 @@ class InternalWaveField:
             self.scalarfield.distort(self.field)
 
  
-    def set_attributes(self,bfrq,iwrange,iwdepth,modes,npoints,
-                       randomphase,offset):
+    def set_attributes(self,bfrq,iwrange,iwdepth,modes,randomphase,offset):
         """
         Desc:
         Helper function for constructor to set all the various fields

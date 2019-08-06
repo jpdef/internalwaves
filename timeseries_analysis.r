@@ -6,38 +6,54 @@
 library(feather)
 library(ggplot2)
 
+read_meta <- function(path){
+    fname = paste(path,"meta.fthr" , sep='/')
+    meta <- read_feather(fname)
+    return (meta)
+}
 
 depth_series <- function(path,time,xpos){
+    #Get dimensions from meta file
+    meta <- read_meta(path)
+    dl   <- meta$depth_len
+    
     fname = paste('run-',time,'.fthr',sep="")
     fpath = paste(path,fname,sep='/')
     df    = read_feather(fpath)
-    return ( df[ seq(xpos,nrow(df),100), ] )
+    return ( df[ seq(xpos,nrow(df),dl), ] )
 }
 
 
 range_series <- function(path,time,zpos){
+    #Get dimensions from meta file
+    meta <- read_meta(path)
+    rl   <- meta$range_len
+    
     fname = paste('run-',time,'.fthr',sep="")
     fpath = paste(path,fname,sep='/')
     df    = read_feather(fpath)
-    return (df[seq(1+ 100*(zpos-1),100*zpos,1), ])
+    
+    return (df[seq(1+ rl*(zpos-1),rl*zpos,1), ])
 }
 
 
 time_series <- function(path,zpos,xpos){
+    #Get dimensions from meta file
+    meta <- read_meta(path)
+    rl   <- meta$range_len
+    
     # Grab all time frames for internal wave field
     values = c()
     for (file in list.files(path=path,pattern="^run")){
         fname = paste(path,file , sep='/')
         frame <- read_feather(fname)
-        slicedepth = frame[seq(1+ 100*(zpos-1),100*zpos,1), ]
+        slicedepth = frame[seq(1+ rl*(zpos-1),rl*zpos,1), ]
         slicerange = slicedepth[xpos,]
         values <- c(values, slicerange$disp)
         
     }
-
-    fname = paste(path,"meta.fthr" , sep='/')
-    meta <- read_feather(fname)
-    ts = data.frame(time=meta$time,disp=values)
+    time <- seq(0,meta$time_max,length.out=meta$time_len)
+    ts = data.frame(time=time,disp=values)
    
     return(ts)
 }

@@ -67,11 +67,13 @@ class InternalWaveField:
         components by taking an outer product of the two vectors
         """
         field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
+        
+        #Field componenents 
         if not self.field_components:
             self.construct_field_components(self.freqs.shape[1]) 
         
-        for n,f in enumerate(self.field_components):
-           field += new_weights[n]*f if new_weights.size else self.weights[n]*f
+        for n,fc in enumerate(self.field_components):
+           field += new_weights[n]*fc if new_weights.size else self.weights[n]*fc
         
         return field   
 
@@ -191,7 +193,6 @@ class InternalWaveField:
                     dependent_vars.append( np.sqrt(cp[m])*ivar )
                     self.vertical_comp[:,:,itr] = vr
                     
-            #f = interpolate.interp1d(independent_vars,dependent_vars,kind='cubic')
             #Using dictionary instead of interpolation so we can have small sets
             #of frequencies that the interpolation cannot support
             d  = dict(zip (independent_vars, dependent_vars ))
@@ -263,8 +264,7 @@ class InternalWaveField:
         d = max(self.depth)
         sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
         N     = np.sqrt(np.gradient(sigma))/5.0
-        cph   = 3600/(2*np.pi)
-        return N/cph
+        return N/3600 #convert to cycle per second
 
 
     def to_dataframe(self):

@@ -125,12 +125,12 @@ class InternalWaveSimulation:
         #Write a file contain various parameters from simulation
         fname = "meta.fthr"
         path = os.path.join(self.dpath,fname)
-        f = pd.DataFrame({'time_len'  : double(len(self.timeaxis)),
-                          'time_max'  : double(max(self.timeaxis)),
-                          'range_len' : double(len(self.iwf.range)),
-                          'range_max' : double(max(self.iwf.range)),
-                          'depth_len' : double(len(self.iwf.depth)),
-                          'depth_max' : double(max(self.iwf.depth))},
+        f = pd.DataFrame({'time_len'  : float(len(self.timeaxis)),
+                          'time_max'  : float(max(self.timeaxis)),
+                          'range_len' : float(len(self.iwf.range)),
+                          'range_max' : float(max(self.iwf.range)),
+                          'depth_len' : float(len(self.iwf.depth)),
+                          'depth_max' : float(max(self.iwf.depth))},
                          index=[0])
                          #'bfrq'  : self.iwf.bfrq},
         feather.write_dataframe(f,path) 

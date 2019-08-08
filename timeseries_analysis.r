@@ -1,5 +1,5 @@
 #TS_ANALYSIS
-#Desc : Library from time series analysis in R
+#Desc : Library for time series analysis in R
 #Auth : J. DeFilippis
 #Date : 7-18-2019
 

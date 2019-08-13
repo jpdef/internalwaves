@@ -115,11 +115,7 @@ class InternalWaveField:
         for i,m in enumerate(self.modes):
             k     = self.hwavenumbers[i,n]
             phi   = self.vertical_comp[:,m,n]
-            if self.randomphase:
-                rp  = 2*np.pi*np.random.rand()
-                psi = np.exp(2*np.pi*1j * k * (self.range - self.offset) + rp ) 
-            else:
-                psi = np.exp(2*np.pi*1j * k * (self.range - self.offset)  )
+            psi = np.exp(2*np.pi*1j * k * (self.range - self.offset) + self.phase ) 
             zeta += np.outer(phi,psi)
         return ( zeta / len(self.modes) ) 
 
@@ -250,6 +246,7 @@ class InternalWaveField:
         self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.modes = modes
         self.randomphase = randomphase
+        self.phase = 2*np.pi*np.random.rand() if self.randomphase else 0
         self.offset = offset
         self.field_components = [] 
         self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)

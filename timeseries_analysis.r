@@ -12,7 +12,7 @@ read_meta <- function(path){
     return (meta)
 }
 
-depth_series <- function(path,time,xpos){
+depth_series <- function(path,time,xpnt){
     #Get dimensions from meta file
     meta <- read_meta(path)
     dl   <- meta$depth_len
@@ -20,11 +20,11 @@ depth_series <- function(path,time,xpos){
     fname = paste('run-',time,'.fthr',sep="")
     fpath = paste(path,fname,sep='/')
     df    = read_feather(fpath)
-    return ( df[ seq(xpos,nrow(df),dl), ] )
+    return ( df[ seq(xpnt,nrow(df),dl), ] )
 }
 
 
-range_series <- function(path,time,zpos){
+range_series <- function(path,time,zpnt){
     #Get dimensions from meta file
     meta <- read_meta(path)
     rl   <- meta$range_len
@@ -33,11 +33,11 @@ range_series <- function(path,time,zpos){
     fpath = paste(path,fname,sep='/')
     df    = read_feather(fpath)
     
-    return (df[seq(1+ rl*(zpos-1),rl*zpos,1), ])
+    return (df[seq(1+ rl*(zpnt-1),rl*zpnt,1), ])
 }
 
 
-time_series <- function(path,zpos,xpos){
+time_series <- function(path,zpnt,xpnt){
     #Get dimensions from meta file
     meta <- read_meta(path)
     rl   <- meta$range_len
@@ -47,8 +47,8 @@ time_series <- function(path,zpos,xpos){
     for (file in list.files(path=path,pattern="^run")){
         fname = paste(path,file , sep='/')
         frame <- read_feather(fname)
-        slicedepth = frame[seq(1+ rl*(zpos-1),rl*zpos,1), ]
-        slicerange = slicedepth[xpos,]
+        slicedepth = frame[seq(1+ rl*(zpnt-1),rl*zpnt,1), ]
+        slicerange = slicedepth[xpnt,]
         values <- c(values, slicerange$disp)
         
     }
@@ -59,9 +59,101 @@ time_series <- function(path,zpos,xpos){
 }
 
 
-ts_compare_plot<-function(path,zpos,xpos1,xpos2){
-    ts1 = time_series(path,zpos,xpos1)
-    ts2 = time_series(path,zpos,xpos2)
+coord_to_row <- function(coord,meta){
+    return ( coord[1] + meta$range_len*(coord[3]-1)) 
+}
+
+generate_random_coords <- function(num_of_points,meta){
+    x <-sample(seq(1,meta$range_len),num_of_points)
+    z <-sample(seq(1,meta$depth_len),num_of_points)
+    coords<-list()
+    for ( i in seq(1,num_of_points)){
+        coords[[i]]<- c(x[i],0,z[i])
+    }
+    return (coords)
+}
+
+generate_coords <- function(x,z,meta){
+    coords<-list()
+    for ( i in seq(1,length(z))){
+        for (j in seq(1,length(x))){
+            coords[[i+length(z)*(j-1)]] <- c(x[j],0,z[i])
+        }
+    }
+    return (coords)
+}
+
+
+multidim_sample_v2 <- function(path,coord,timesamples){
+    meta  <- read_meta(path)
+    files <- list.files(path=path,pattern="^run")
+    t <- 1
+    df   <- data.frame()
+    for (f in files[timesamples] ){
+        fname =  paste(path,f,sep='/')
+        frame <- read_feather(fname)
+        tt  <- timesamples[t]*(meta$time_max)/(meta$time_len-1)
+        frame <- cbind(frame,time=tt)
+        row   <- coord_to_row(coord,meta)
+        df <- rbind(df,frame[row,])
+        t <- t + 1
+    }
+    return ( df )
+
+}
+
+multidim_samples_v2 <- function(path,coords,timesamples){
+    meta  <- read_meta(path)
+    files <- list.files(path=path,pattern="^run")
+    t <- 1
+    df   <- data.frame()
+    for (f in files[timesamples] ){
+        fname =  paste(path,f,sep='/')
+        frame <- read_feather(fname)
+        tt  <- timesamples[t]*(meta$time_max)/(meta$time_len-1)
+        frame <- cbind(frame,time=tt)
+        for (coord in coords ) {
+            row   <- coord_to_row(coord,meta)
+            df    <- rbind(df,frame[row,])
+        }
+        t <- t + 1
+    }
+    return ( df )
+
+}
+
+multidim_sample <- function(path,coord,timesamples){
+    meta  <- read_meta(path)
+    t <- 0
+    df   <- data.frame()
+    for ( file in list.files(path=path,pattern="^run") ){
+        fname <- paste(path,file,sep='/')
+        frame <- read_feather(fname)
+        time  <- t*(meta$time_max)/(meta$time_len-1) 
+        frame <- cbind(frame,time=time)
+        row   <- coord_to_row(coord,meta)
+        df <- rbind(df,frame[row,])
+        t <- t + 1
+    }
+    df <-if (missing(timesamples)) df else df[timesamples,]
+    return ( df )
+
+}
+
+multidim_samples <- function(path,coords,timesamples){
+    samples <- data.frame()
+    for (coord in coords){
+        sample  <- multidim_sample(path,coord,timesamples)
+        samples <- rbind(samples,sample)
+    }
+    return (samples)
+}
+
+
+
+ts_compare_plot<-function(path,zpnt,xpnt1,xpnt2){
+    ts1 = time_series(path,zpnt,xpnt1)
+    ts2 = time_series(path,zpnt,xpnt2)
     mm =  max_min(ts1$disp,ts2$disp)
     plot(ts1,col='blue',type='l',
          xlab="Time (hours)", ylab="Displacement (m)",
@@ -69,7 +161,7 @@ ts_compare_plot<-function(path,zpos,xpos1,xpos2){
     lines(ts2,col='red')
     
     legend("topleft",
-           legend=c(paste("X =",xpos1/10,"km"), paste("X =",xpos2/10,"km")),
+           legend=c(paste("X =",xpnt1/10,"km"), paste("X =",xpnt2/10,"km")),
            col=c("red", "blue"),
            lty=c(1,1),
            cex=0.7) 
@@ -85,9 +177,9 @@ max_min <- function(ts1,ts2){
     return (c(min,max))
 }
 
-crosscor<-function(path,zpos,xpos1,xpos2){
-    ts1 <- time_series(path,zpos,xpos1)
-    ts2 <- time_series(path,zpos,xpos2)
+crosscor<-function(path,zpnt,xpnt1,xpnt2){
+    ts1 <- time_series(path,zpnt,xpnt1)
+    ts2 <- time_series(path,zpnt,xpnt2)
 
     
     rho = ccf(ts1$disp,ts2$disp,plot=FALSE)

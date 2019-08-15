@@ -68,8 +68,8 @@ tappered_least_square_c <- function(samps,obs,params,basis_fn){
 
 #Tappered least square method cornuelle
 tappered_least_square <- function(H,obs){
-    R <- 0.1*diag(nrow(H))
-    Q <- 0.1*diag(ncol(H))
+    R <- diag(nrow(H))
+    Q <- diag(ncol(H))
     R_inv <- solve(R)
     Q_inv <- solve(Q)
     x_approx <- solve(t(H) %*% R_inv %*% H + Q_inv) %*% t(H)%*% R_inv %*% obs
@@ -116,8 +116,8 @@ generate_vert_modes <- function(depth,strat,freq){
     N2 <- diag(strat)
     
     M1 <- F2-N2
-    #return( geigen (M1,D2,symmetric = FALSE) )
-    return( eigen (solve(D2) %*% M1) )
+    return( geigen (M1,D2,symmetric = FALSE) )
+    #return( eigen (solve(D2) %*% M1) )
 }
 
 evaluate_modes <- function(ev,depth,modes,z){
@@ -134,10 +134,9 @@ evaluate_modes <- function(ev,depth,modes,z){
     return(matrix(vm,nrow=length(z)))
 }
 
-generate_wavenumbers <- function(depth,strat,ps){
-    modes <- unique(ps$modes)
+generate_wavenumbers <- function(depth,strat,omega,modes){
     wn <- c()
-    for (o in unique(ps$omega)){
+    for (o in unique(omega)){
         e <- generate_vert_modes(depth,strat,o)
         wnn <- o/sqrt( e$values[modes] )
         wn <- c(wn,wnn) 
@@ -146,12 +145,14 @@ generate_wavenumbers <- function(depth,strat,ps){
 }
 
 
+# Note factor of 7 needs to be fixed disagreement b/t
+# python modes and R modes
 generate_mode_matrix <- function(depth,strat,ps,ds){
     freqs <- unique(ps$omega)
     modes <- unique(ps$modes)
     for (f in freqs){
        ev <-  generate_vert_modes(depth,strat,f)
-       Mn <-  evaluate_modes(ev,depth,modes,ds$z)
+       Mn <-  evaluate_modes(ev,depth,modes,ds$z)/7
        M  <- if( exists('M') ) cbind(M,Mn) else Mn
      }
      return (M)
@@ -186,24 +187,27 @@ mag <- function(a,b){
     return (sqrt(a**2 + b**2))
 }
 
+
 plot_ls_par <- function(fit,params,parlab,par_true,xlab,ylab){
     colors <- list('blue','red','green')
-    for (m in unique(ps$modes) ){
-        s = ps$mode == m
+    for (m in unique(params$modes) ){
+        s = params$mode == m
+        A <- sum( abs(params[s,parlab]))
         if (m == 1){
-            y <- ps[s,parlab]
-            plot(3600*ps$omega[s],y,
+            y <- params[s,parlab]
+            plot(3600*params$omega[s],y/A,
                  #ylim=10*c(min(y),max(y)),
-                 ylim=2*c(min(fit$y),max(fit$y)),
+                 #ylim=2*c(min(fit$y),max(fit$y)),
+                 ylim=c(-0.35,0.35),
                  xlab=xlab,
                  ylab=ylab,
                  col=colors[[m]])
         }
-        points(3600*ps$omega[s],ps[s,parlab],col=colors[[m]])
+        points(3600*params$omega[s],params[s,parlab]/A,col=colors[[m]])
 
     }
-
-    points(3600*ps$omega[s],par_true,pch=3)
+    A <- sum(abs(par_true))
+    points(3600*params$omega[s],par_true/A,pch=3)
     legend("topright",legend=c("M1","M2","M3","Model"),
             col=c('blue','red','green','black'),
             lty=c(rep(1,3),3),
@@ -233,7 +237,7 @@ plot_ls_mag <- function(fit,par_true,xlab,ylab){
     legend("topright",legend=c("M1","M2","M3","Model"),
             col=c('blue','red','green','black'),
             lty=c(rep(1,3),3),
-            cex=0.9)
+            cex=0.6)
     title("Plot of Parameters")
 }
 

@@ -20,7 +20,7 @@ class InternalWaveField:
     def __init__(self,iwrange,iwdepth,
                  freqs=np.array([]), hwavenumbers=np.array([]),
                  weights=np.array([]), bfrq=np.array([]), 
-                 randomphase=True,offset=0,
+                 phase=0,offset=0,
                  modes=np.array([1]),
                  scalarfield=np.array([])):
         
@@ -32,7 +32,7 @@ class InternalWaveField:
             print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,iwrange,iwdepth,modes,randomphase,offset)        
+        self.set_attributes(bfrq,iwrange,iwdepth,modes,phase,offset)        
         
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,hwavenumbers,weights)
@@ -115,7 +115,7 @@ class InternalWaveField:
         for i,m in enumerate(self.modes):
             k     = self.hwavenumbers[i,n]
             phi   = self.vertical_comp[:,m,n]
-            psi = np.exp(2*np.pi*1j * k * (self.range - self.offset) + self.phase ) 
+            psi   = np.exp(2*np.pi*1j * k * (self.range - self.offset) + self.phase ) 
             zeta += np.outer(phi,psi)
         return ( zeta / len(self.modes) ) 
 
@@ -235,7 +235,7 @@ class InternalWaveField:
             self.scalarfield.distort(self.field)
 
  
-    def set_attributes(self,bfrq,iwrange,iwdepth,modes,randomphase,offset):
+    def set_attributes(self,bfrq,iwrange,iwdepth,modes,phase,offset):
         """
         Desc:
         Helper function for constructor to set all the various fields
@@ -245,8 +245,7 @@ class InternalWaveField:
         self.bfrq = bfrq if bfrq.size else self.cannonical_bfrq()
         self.vmodes = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.modes = modes
-        self.randomphase = randomphase
-        self.phase = 2*np.pi*np.random.rand() if self.randomphase else 0
+        self.phase = phase 
         self.offset = offset
         self.field_components = [] 
         self.field = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)

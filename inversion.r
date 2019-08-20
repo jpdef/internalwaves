@@ -18,6 +18,22 @@ make_manifold <- function(samples,params,basis){
    return (H)
 }
 
+#Creates inverse matrix codifing all the basis functions
+make_inv_matrix <- function(ds,ps,depth,strat){
+    
+    #Sinsoid Basis
+    real <- cos(2*pi*(ds$x%*%t(ps$k) - ds$time%*%t(ps$omega)) )
+    img  <- sin(2*pi*(ds$x%*%t(ps$k) - ds$time%*%t(ps$omega)) )
+    SB <- cbind(real,img)
+    
+    #Modal Basis
+    V <- generate_mode_matrix(depth,strat,ps,ds)
+    MB <- cbind(V,V) 
+    return (MB*SB)
+    #return (V*real)
+}
+
+
 #Makes a tridiagonal matrix with 1 on the diag and -1 
 # on the elements on either side of the diagonal
 make_smoothness_matrix <- function(n){

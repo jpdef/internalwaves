@@ -6,6 +6,13 @@
 library(feather)
 library(ggplot2)
 
+
+###################################################
+#               SERIES EXTRACTION                 # 
+#                                                 # 
+###################################################
+
+
 read_meta <- function(path){
     fname = paste(path,"meta.fthr" , sep='/')
     meta <- read_feather(fname)
@@ -58,6 +65,11 @@ time_series <- function(path,zpnt,xpnt){
     return(ts)
 }
 
+###################################################
+#          MULTI POINT EXTRACTION                 # 
+#                                                 # 
+###################################################
+
 
 coord_to_row <- function(coord,meta){
     return ( coord[1] + meta$range_len*(coord[3]-1)) 
@@ -84,25 +96,7 @@ generate_coords <- function(x,z,meta){
 }
 
 
-multidim_sample_v2 <- function(path,coord,timesamples){
-    meta  <- read_meta(path)
-    files <- list.files(path=path,pattern="^run")
-    t <- 1
-    df   <- data.frame()
-    for (f in files[timesamples] ){
-        fname =  paste(path,f,sep='/')
-        frame <- read_feather(fname)
-        tt  <- timesamples[t]*(meta$time_max)/(meta$time_len-1)
-        frame <- cbind(frame,time=tt)
-        row   <- coord_to_row(coord,meta)
-        df <- rbind(df,frame[row,])
-        t <- t + 1
-    }
-    return ( df )
-
-}
-
-multidim_samples_v2 <- function(path,coords,timesamples){
+multidim_samples <- function(path,coords,timesamples){
     meta  <- read_meta(path)
     files <- list.files(path=path,pattern="^run")
     t <- 1
@@ -122,33 +116,10 @@ multidim_samples_v2 <- function(path,coords,timesamples){
 
 }
 
-multidim_sample <- function(path,coord,timesamples){
-    meta  <- read_meta(path)
-    t <- 0
-    df   <- data.frame()
-    for ( file in list.files(path=path,pattern="^run") ){
-        fname <- paste(path,file,sep='/')
-        frame <- read_feather(fname)
-        time  <- t*(meta$time_max)/(meta$time_len-1) 
-        frame <- cbind(frame,time=time)
-        row   <- coord_to_row(coord,meta)
-        df <- rbind(df,frame[row,])
-        t <- t + 1
-    }
-    df <-if (missing(timesamples)) df else df[timesamples,]
-    return ( df )
-
-}
-
-multidim_samples <- function(path,coords,timesamples){
-    samples <- data.frame()
-    for (coord in coords){
-        sample  <- multidim_sample(path,coord,timesamples)
-        samples <- rbind(samples,sample)
-    }
-    return (samples)
-}
-
+###################################################
+#              PLOTS + MISC                       # 
+#                                                 # 
+###################################################
 
 
 ts_compare_plot<-function(path,zpnt,xpnt1,xpnt2){
@@ -171,10 +142,18 @@ ts_compare_plot<-function(path,zpnt,xpnt1,xpnt2){
 
 
 max_min <- function(ts1,ts2){
-
     max <- if ( max(ts1) > max(ts2) ) max(ts1) else max(ts2)
     min <- if ( min(ts1) < min(ts2) ) min(ts1) else min(ts2)
     return (c(min,max))
+}
+
+takespec <- function(ds,s=1:30,scale=1,xlab="Freq",
+                     ylab="Spec Density",title="Spectrum"){
+    spec <- spectrum(ds$disp,plot=FALSE)
+    plot <- plot(spec$freq[s]*scale,spec$spec[s],
+                 xlab=xlab,
+                 ylab=ylab)
+    title(title)
 }
 
 crosscor<-function(path,zpnt,xpnt1,xpnt2){

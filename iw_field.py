@@ -1,4 +1,3 @@
-#IW_FIELD
 #Desc : Library for computing internal wave fields
 #Auth : J. DeFilippis
 #Date : 6-26-2019

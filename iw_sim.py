@@ -93,7 +93,10 @@ class InternalWaveSimulation:
         Modulates each frame with a e^(2pi i * f *t) where t is the
         time input and the frequencies are known.
         """
-        waves = np.array( [np.exp(-2*np.pi*1j*f*t) for f in self.iwf.freqs[0]])
+        waves = [] 
+        for fm in self.iwf.freqs:
+            waves +=  [np.exp(-2*np.pi*1j*f*t) for f in fm]
+        waves = np.array(waves)
         step  = np.multiply(self.iwf.weights,waves)
         return step
     

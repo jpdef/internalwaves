@@ -59,7 +59,7 @@ class InternalWaveField:
            return self.construct_field_from_wavenumbers()
 
     
-    def construct_field_from_freqs(self,new_weights=np.array([])):
+    def construct_field_from_freqs(self,step=np.array([])):
         """
         Desc:
         Constructs a 2D wave field from the vertical and horizontal
@@ -69,15 +69,15 @@ class InternalWaveField:
         
         #Field componenents 
         if not self.field_components:
-            self.construct_field_components(self.freqs.shape[1]) 
+           self.construct_field_components(self.freqs.shape[1]) 
         
         for n,fc in enumerate(self.field_components):
-           field += new_weights[n]*fc if new_weights.size else self.weights[n]*fc
+           field += step[n]*fc if step.size else fc 
         
         return field   
 
  
-    def construct_field_from_wavenumbers(self):
+    def construct_field_from_wavenumbers(self,step=np.array([])):
         """
         Desc:
         Constructs a 2D wave field from the vertical and horizontal
@@ -87,8 +87,8 @@ class InternalWaveField:
         if not self.field_components:
             self.construct_field_components(self.hwavenumber.shape[1]) 
 
-        for n,f in enumerate(self.field_components):
-           field += self.weights[n]*f
+        for n,fc in enumerate(self.field_components):
+           field += step[n]*fc if step.size else fc 
  
         return field
 
@@ -112,13 +112,24 @@ class InternalWaveField:
         """
         zeta = np.zeros(shape=(len(self.depth),len(self.range)),dtype=complex)
         for i,m in enumerate(self.modes):
-            k     = self.hwavenumbers[i,n]
-            phi   = self.vertical_comp[:,m,n]
-            psi   = np.exp(2*np.pi*1j * k * (self.range - self.offset) + self.phase ) 
+            k    = self.hwavenumbers[i,n]
+            phi  = self.vertical_comp[:,m,n]
+            psi  = np.exp(2*np.pi*1j * k * (self.range - self.offset) + self.phase ) 
+            amp  = self.get_amplitude(n,m) 
             zeta += np.outer(phi,psi)
-        return ( zeta / len(self.modes) ) 
-
-
+        return zeta 
+    
+     
+    def get_amplitude(self,n,m):
+        """
+        Desc:
+        Returns amplitude for wave with mode m and frequency or 
+        wavenumber n
+        """
+        l = len(self.freqs[0])
+        return self.weights[m*l + n]
+   
+    
     def init_dispersion(self,freqs,hwavenumbers,weights):
         """
         self.vertical_component[z_n, m, f_n] 
@@ -129,14 +140,16 @@ class InternalWaveField:
         D = len(self.depth)
         if freqs.size and not hwavenumbers.size:
             print("Field with input of frequencies")
-            nf = len(freqs)
+            nf = len(freqs)*len(self.modes)
+            print(nf)
             self.vertical_comp = np.ndarray(shape=(D,D,nf ) )
             self.freqs = np.tile(freqs,( len(self.modes) , 1))
             self.hwavenumbers = self.construct_hwavenumbers(freqs)
             self.weights = weights if weights.size else np.ones(nf)
+            print(self.weights)
         elif hwavenumbers.size and not freqs.size:
             print("Field with input of wavenumbers")
-            nk = len(hwavenumbers)
+            nk = len(hwavenumbers)*len(self.modes)
             self.vertical_comp = ndarray(shape=(D,D,nk) )
             self.hwavenumbers = np.tile(hwavenumbers,( len(self.modes) ,1))
             self.freqs = self.construct_frequencies(hwavenumbers)
@@ -223,13 +236,13 @@ class InternalWaveField:
         else:
            raise KeyError
 
-    def update_field(self,new_weights):
+    def update_field(self,step):
         """
         Desc:
         Efficient way to timestep or change distrubution after having calculated all
         the horizontal and vertical components
         """
-        self.field = self.construct_field_from_freqs(new_weights)
+        self.field = self.construct_field_from_freqs(step)
         if self.scalarfield.size:
             self.scalarfield.distort(self.field)
 
@@ -258,7 +271,7 @@ class InternalWaveField:
         """
         d = max(self.depth)
         sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
-        N     = np.sqrt(np.gradient(sigma))/5.0
+        N     = np.sqrt(np.gradient(sigma))
         return N/3600 #convert to cycle per second
 
 

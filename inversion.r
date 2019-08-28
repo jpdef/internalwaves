@@ -19,21 +19,19 @@ make_manifold <- function(samples,params,basis){
 }
 
 #Creates inverse matrix codifing all the basis functions
-make_inv_matrix <- function(ds,ps,depth,strat){
+make_inv_matrix <- function(ds,ps){
     
     #Sinsoid Basis
-    real <- cos(2*pi*(ds$x%*%t(ps$k) - ds$time%*%t(ps$omega)) )
-    img  <- sin(2*pi*(ds$x%*%t(ps$k) - ds$time%*%t(ps$omega)) )
+    real <- cos(2*pi*(ds$x%*%t(ps$kx) + ds$y%*%t(ps$ky) - ds$t%*%t(ps$omega)) )
+    img  <- sin(2*pi*(ds$x%*%t(ps$kx) + ds$y%*%t(ps$ky) - ds$t%*%t(ps$omega)) )
     SB <- cbind(real,img)
     
     #Modal Basis
     V <- generate_mode_matrix(depth,strat,ps,ds)
     MB <- cbind(V,V) 
+    
     return (MB*SB)
-    #return (V*real)
 }
-
-
 #Makes a tridiagonal matrix with 1 on the diag and -1 
 # on the elements on either side of the diagonal
 make_smoothness_matrix <- function(n){
@@ -69,26 +67,11 @@ tappered_least_square_w <- function(samps,obs,params,basis_fn){
 }
 
 #Tappered least square method cornuelle
-tappered_least_square_c <- function(samps,obs,params,basis_fn){
-    H <- make_manifold(samps,params,basis_fn)
-    R <- diag(length(obs))
-    Q <- diag(length(basis_fn)*length(params))
-    R_inv <- solve(R)
-    Q_inv <- solve(Q)
-    x_approx <- solve(t(H) %*% R_inv %*% H + Q_inv) %*% t(H)%*% R_inv %*% obs
-    y_approx <- H%*%x_approx
-    n_approx <- obs-y_approx
-    return( list( y=obs,x_hat=x_approx,y_hat=y_approx,n_hat=n_approx ) )
-    
-}
-
-#Tappered least square method cornuelle
 tappered_least_square <- function(H,obs){
-    R <- diag(nrow(H))
-    Q <- diag(ncol(H))
-    R_inv <- solve(R)
-    Q_inv <- solve(Q)
-    x_approx <- solve(t(H) %*% R_inv %*% H + Q_inv) %*% t(H)%*% R_inv %*% obs
+    R_inv <- diag(nrow(H))
+    Q_inv <- diag(ncol(H))
+    GM    <- t(H) %*% R_inv %*% H + Q_inv
+    x_approx <- solve(GM) %*% t(H)%*% R_inv %*% obs
     y_approx <- H%*%x_approx
     n_approx <- obs-y_approx
     return( list( y=obs,x_hat=x_approx,y_hat=y_approx,n_hat=n_approx ) )
@@ -133,22 +116,17 @@ generate_vert_modes <- function(depth,strat,freq){
     
     M1 <- F2-N2
     return( geigen (M1,D2,symmetric = FALSE) )
-    #return( eigen (solve(D2) %*% M1) )
 }
 
-evaluate_modes <- function(ev,depth,modes,z){
-    fm <- c()
-    for (m in modes){
-        f <- approxfun(depth,ev$vectors[,m])
-        fm <- c(fm,f)
-    }
-    vm <- c()
-    for (f in fm){
-        col <- f(z)
-        vm <- c(vm,col)
-    }
-    return(matrix(vm,nrow=length(z)))
+
+# Note factor of 7 needs to be fixed disagreement b/t
+# python modes and R modes
+evaluate_mode <- function(ev,depth,mode,z){
+    f <- approxfun(depth,ev$vectors[,mode])
+    col <- f(z)/7
+    return(col)
 }
+
 
 generate_wavenumbers <- function(depth,strat,omega,modes){
     wn <- c()
@@ -156,20 +134,27 @@ generate_wavenumbers <- function(depth,strat,omega,modes){
         e <- generate_vert_modes(depth,strat,o)
         wnn <- o/sqrt( e$values[modes] )
         wn <- c(wn,wnn) 
-    }
+   }
     return(wn)
 }
 
 
-# Note factor of 7 needs to be fixed disagreement b/t
-# python modes and R modes
 generate_mode_matrix <- function(depth,strat,ps,ds){
     freqs <- unique(ps$omega)
     modes <- unique(ps$modes)
+    M <- matrix(nrow=nrow(ds))
     for (f in freqs){
+       
+       #Eigen value/vector matrix
        ev <-  generate_vert_modes(depth,strat,f)
-       Mn <-  evaluate_modes(ev,depth,modes,ds$z)/7
-       M  <- if( exists('M') ) cbind(M,Mn) else Mn
+       
+       for (m in modes) {
+           mv <-  evaluate_mode(ev,depth,m,ds$z)
+           #Number of wavenumbers per mode,frequency
+           nk <-  nrow(ps[ps$omega == f & ps$modes == m,])
+           Mm <-  matrix(mv,length(mv),nk)
+           M  <-  if (all(is.na(M))) Mm else cbind(M,Mm)
+       }
      }
      return (M)
 }

@@ -23,13 +23,14 @@ class InternalWaveSimulation:
 
     """
 
-    def __init__(self,timeaxis,iwf,ftype=0,dpath="",fname=""):
+    def __init__(self,timeaxis,iwf,ftype=0,dpath="",fname="",chunklim=100):
         self.frames = []
         self.fields = []
         self.scalarfields = []
         self.timeaxis = timeaxis
         self.iwf = iwf
         self.ftype = ftype
+        self.chunklim = chunklim
         self.delta_t = max(self.timeaxis)/( (len(self.timeaxis)-1) * (3600) )
         self.dpath = dpath if dpath else os.getcwd()
         self.zero_padding = int(np.floor( np.log10(len(self.timeaxis)) ) + 1)
@@ -39,28 +40,27 @@ class InternalWaveSimulation:
         self.fname = fname if fname else "iwfsim"
 
 
-    def run(self):
-        if len(self.timeaxis) > 1000:
-            chunk_size = int( np.floor(len(self.timeaxis)/1000) )
+    def run(self,coords=[]):
+        if len(self.timeaxis) > self.chunklim:
+            chunk_size = int( np.floor(len(self.timeaxis)/self.chunklim) )
             timechunks = self.make_chunks(chunk_size)
             for i,tc in self.progressbar(timechunks, "Long Simulation"):
                 self.timeaxis = tc
-                self.simulate()
+                self.simulate(coords=coords)
                 self.make_files(offset=i*chunk_size)
                 self.fields = []
                 self.frames = [] 
        
         else:
-            self.simulate()
+            self.simulate(coords=coords)
             self.make_files()
      
-    def simulate(self):
+    def simulate(self,coords=[]):
         for i,t in self.progressbar(self.timeaxis,"Simulating"):
             step = self.make_step(t)
             self.iwf.update_field(step)
-            self.frames.append(self.iwf.to_dataframe())
+            self.frames.append(self.iwf.to_dataframe(coords=coords,time=t))
             self.fields.append(self.iwf.field)
-            #self.scalarfields.append(self.iwf.scalarfield.field)
 
 
     def progressbar(self,dataset,desc):
@@ -97,8 +97,7 @@ class InternalWaveSimulation:
         for fm in self.iwf.freqs:
             waves +=  [np.exp(-2*np.pi*1j*f*t) for f in fm]
         waves = np.array(waves)
-        step  = np.multiply(self.iwf.weights,waves)
-        return step
+        return waves
     
     
     def make_files(self,offset=0):
@@ -151,7 +150,7 @@ class InternalWaveSimulation:
         self.set_animation_attributes(fig,ax) 
         
         #First Frame
-        zeros  = np.zeros(shape=self.iwf.field.shape)
+        zeros  = np.zeros(shape=(self.iwf.field.shape[0] , self.iwf.field.shape[2] ) )
         p = ax.contourf(dist,depth,zeros,20,cmap=cmocean.cm.thermal)
         
         #Init and update function
@@ -166,7 +165,7 @@ class InternalWaveSimulation:
 
 
     def set_animation_attributes(self,fig,ax):
-        ax.invert_yaxis()
+        #ax.invert_yaxis()
         ax.set_xlabel('Range Km')
         ax.set_ylabel('Depth Km')
         
@@ -179,10 +178,9 @@ class InternalWaveSimulation:
     def update_animation(self,fig,ax,cbar_ax,frame):
         ax.set_title('%.2f hours' % np.multiply(frame,self.delta_t))
         field = self.fields[frame]
-        #field = self.scalarfields[frame].real
         dist  = self.iwf.range
         depth = self.iwf.depth
-        p = ax.contourf(dist,depth,field.real,20,cmap=cmocean.cm.thermal)
+        p = ax.contourf(dist,depth,field.real[0,:,:],20,cmap=cmocean.cm.thermal)
         cbar_ax.cla()
         fig.colorbar(p, cax=cbar_ax)
         return p

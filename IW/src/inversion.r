@@ -3,9 +3,6 @@
 #Auth : J. DeFilippis
 #Date : 8-08-2019
 
-#Source libraries
-source('modes.r')
-
 
 #Creates a model manifold from a set of basis functions
 make_manifold <- function(samples,params,basis){
@@ -85,6 +82,32 @@ tappered_least_square <- function(H,obs){
     n_approx <- obs-y_approx
     return( list( y=obs,x_hat=x_approx,y_hat=y_approx,n_hat=n_approx ) )
     
+}
+
+###################################################
+#                  FWRD FUNCTIONS                 # 
+#                                                 # 
+###################################################
+
+#Foward problem
+make_forecast <- function(ds_fut,ps){
+    a<-c(ps$a,ps$b)
+    H2 <- make_inv_matrix(ds_fut,ps)
+    ds_fut['disp_est'] <- H2%*%a
+    return (ds_fut)
+}
+
+forecast_error <- function(ds_fut){
+    rms_error <- c()
+    time <- unique(ds_fut$t)
+    for (tt in time ) {
+        dt  <- ds_fut$disp[ds_fut$t == tt]
+        de  <- ds_fut$disp_est[ds_fut$t == tt]
+        rms_diff <- sqrt(mean( (dt - de)**2  ))
+        rms_de   <- sqrt(mean( de**2 ) )
+        rms_error <- c(rms_error,rms_diff/rms_de)
+    }
+    return(rms_error)
 }
 
 

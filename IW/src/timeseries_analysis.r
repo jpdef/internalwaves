@@ -84,6 +84,19 @@ merge_time_frames <- function(path,timesamples){
 
 }
 
+read_data_dir <- function(path,timesamples,epsi){
+    #Setup datapath and read metafile
+    meta    <- read_meta(path)
+    
+    #Read in the data
+    ds <- merge_time_frames(path,timesamples)
+    
+    #Add some noise
+    noise <- epsi*rnorm(length(ds$disp)) 
+    ds$disp <- ds$disp + noise
+    return (ds)
+}
+
 ###################################################
 #              PLOTS + MISC                       # 
 #                                                 # 

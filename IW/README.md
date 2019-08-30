@@ -1,7 +1,7 @@
-# internalwaves
+# Internal Waves
 Library of routines to calculate internal wave fields, and invert internal wave field data make to model paramters
 
-##Running Simulations
+## Running Simulations
 The simulations take a configuration file which specifies the paramters of the simulation. They are written in JSON format. Examples are found in ./script/config. 
 To execute a simulation run the following command. 
 ```

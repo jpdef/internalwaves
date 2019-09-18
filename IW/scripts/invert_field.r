@@ -22,7 +22,7 @@ inputs  <- fromJSON(file=args[1])
 meta    <- read_meta(inputs$path)
 
 #Ocean profile
-stratdf <- read_feather('config/strat.fthr')
+stratdf <- read_feather('../config/strat.fthr')
 strat   <- stratdf$strat
 depth   <- seq(0,meta$depth_max,length.out=meta$depth_len)
 

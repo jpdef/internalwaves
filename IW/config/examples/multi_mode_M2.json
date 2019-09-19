@@ -1,0 +1,18 @@
+{
+ "range_end"  : 5e5,
+ "range_res"  : 100,
+ "depth_end"  : 5e3,
+ "depth_res"  : 100,
+ "time_stop"  : 52e4,
+ "time_step"  : 900,
+ "x_samples"  : [25,50,75],
+ "y_samples"  : [25,50,75],
+ "z_samples"  : [5,10,15,20,25],
+ "freqs"      : [0.0805],
+ "modes"      : [0,1],
+ "amps_real"  : [[10],[10]],
+ "amps_imag"  : [[0],[0]],
+ "headings"   : [[45],[45]],
+ "path"       : "../data/example2",
+ "ftype"      : 0
+ }

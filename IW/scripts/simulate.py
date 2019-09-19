@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-#RUN_SIM
+#SIMULATE
 #Desc : Script that executes internal wave simulation 
 #Auth : J. DeFilippis
 #Date : 7-16-2019
@@ -22,7 +22,7 @@ cph = 3600
 if len(sys.argv) > 1:
     config_fname = sys.argv[1]
 else:
-    print("Usage : need configuratoin filename ")
+    print("Usage : need configuration filename ")
     sys.exit(1)
 
 

@@ -32,10 +32,11 @@ class InternalWaveField:
         self.init_dispersion(freqs,amplitudes)
 
         #Compute 3D field from phase speeds and structure functions
-        self.field = self.construct_field(freqs)
+        self.disp_field = self.construct_disp_field(freqs)
+        self.velo_field = self.construct_velo_field(freqs)
         
     
-    def construct_field(self,step=np.array([])):
+    def construct_disp_field(self,step=np.array([])):
         """
         Desc:
         Constructs a 3D wave field from the vertical and horizontal
@@ -44,18 +45,38 @@ class InternalWaveField:
         field = self.empty_field()
                 
         #Initialize Field Components 
-        if not self.field_components:
+        if not self.disp_field_components:
             for n in range(self.nfreqs):
-                self.field_components.append(self.construct_field_component(n))
+                self.disp_field_components.append(self.construct_field_component(n))
         
         #Update Field Component Values
-        for n,fc in enumerate(self.field_components):
+        for n,fc in enumerate(self.disp_field_components):
+           field += step[n]*fc if step.size else fc 
+        
+        return field   
+   
+    #TODO: need to multiply k/|k| and l/|k| for each horiztonal component 
+    def construct_velo_field(self,step=np.array([])):
+        """
+        Desc:
+        Constructs a 3D wave field from the vertical and horizontal
+        components by taking an outer product of the two vectors
+        """
+        field = self.empty_field()
+                
+        #Initialize Field Components 
+        if not self.velo_field_components:
+            for n in range(self.nfreqs):
+                self.velo_field_components.append(self.construct_velo_field_component(n))
+        
+        #Update Field Component Values
+        for n,fc in enumerate(self.velo_field_components):
            field += step[n]*fc if step.size else fc 
         
         return field   
 
-    
-    def construct_field_component(self,n):
+ 
+    def construct_disp_field_component(self,n):
         """
         Desc:
         Constructs a 3D wave field componenent for a specific frequency/wavenumber
@@ -65,10 +86,28 @@ class InternalWaveField:
         zeta = self.empty_field()
        
         for i,m in enumerate(self.modes):
-            psi     = self.horizontal_comp(i,n)
-            phi     = self.vertical_comp[:,m,n]
+            psi  = self.horizontal_comp(i,n)
+            phi  = self.vertical_comp[:,m,n]
             for zn in range(len(self.depth)):
                 zeta[zn,:,:] += psi*phi[zn]
+       
+        return zeta 
+   
+    
+    def construct_velo_field_component(self,n):
+        """
+        Desc:
+        Constructs a 3D wave field componenent for a specific frequency/wavenumber
+        depending on the choosen dependent variable. These components are then summed
+        to give the total wavefield.
+        """
+        zeta = self.empty_field()
+       
+        for i,m in enumerate(self.modes):
+            psi    = self.horizontal_comp(i,n)
+            phiz   = self.vertical_grad[:,m,n]
+            for zn in range(len(self.depth)):
+                zeta[zn,:,:] += psi*phiz[zn]
        
         return zeta 
    
@@ -205,7 +244,7 @@ class InternalWaveField:
         Efficient way to timestep or change distrubution after having calculated all
         the horizontal and vertical components
         """
-        self.field = self.construct_field(step)
+        self.disp_field = self.construct_disp_field(step)
 
  
     def set_attributes(self,bfrq,iwrange,iwdepth,modes,offset):
@@ -220,11 +259,11 @@ class InternalWaveField:
         self.vmodes  = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.modes   = modes
         self.offset  = offset
-        self.field_components = [] 
-        self.field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),
+        self.disp_field_components = [] 
+        self.disp_field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),
                               dtype=complex)
 
-
+    #Add the depth spacing to the stratifcation grad and check if this works for R script
     def cannonical_bfrq(self):
         """
         Desc:
@@ -250,14 +289,14 @@ class InternalWaveField:
          x = [self.range[c[0]] for c in coords] 
          y = [self.range[c[1]] for c in coords] 
          z = [self.depth[c[2]] for c in coords]  
-         Z = [self.field.real[c[2],c[1],c[0]] for c in coords]
+         Z = [self.disp_field.real[c[2],c[1],c[0]] for c in coords]
          t = np.repeat(time,len(x))
         
          return pd.DataFrame({"x" : x , "y" :  y , "z" : z , "t" : t, "disp" : Z})
     
 
     def flatten_data(self):
-        zeta = self.field.real.flatten()
+        zeta = self.disp_field.real.flatten()
         x    = np.ndarray(shape=(1,),dtype=float)
         y    = np.ndarray(shape=(1,),dtype=float)
         z    = np.ndarray(shape=(1,),dtype=float)

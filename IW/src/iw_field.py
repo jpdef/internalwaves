@@ -31,14 +31,14 @@ class InternalWaveField:
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,amplitudes)
 
-        #Compute 2D field from phase speeds and structure functions
+        #Compute 3D field from phase speeds and structure functions
         self.field = self.construct_field(freqs)
         
     
     def construct_field(self,step=np.array([])):
         """
         Desc:
-        Constructs a 2D wave field from the vertical and horizontal
+        Constructs a 3D wave field from the vertical and horizontal
         components by taking an outer product of the two vectors
         """
         field = self.empty_field()
@@ -58,7 +58,7 @@ class InternalWaveField:
     def construct_field_component(self,n):
         """
         Desc:
-        Constructs a 2D wave field componenent for a specific frequency/wavenumber
+        Constructs a 3D wave field componenent for a specific frequency/wavenumber
         depending on the choosen dependent variable. These components are then summed
         to give the total wavefield.
         """
@@ -117,7 +117,8 @@ class InternalWaveField:
 
     def init_dispersion(self,freqs,amplitudes):
         """
-        self.vertical_component[z_n, m, f_n] 
+        self.vertical_comp[z_n, m, f_n] 
+        self.vertical_grad[z_n, m, f_n] 
             z_n depth grid point for vertical functions
             m   mode number
             f_n associated frequency
@@ -127,6 +128,7 @@ class InternalWaveField:
         self.nfreqs = len(freqs)
         
         self.vertical_comp = np.ndarray(shape=(D,D,self.nwaves ) )
+        self.vertical_grad = np.ndarray(shape=(D,D,self.nwaves ) )
         self.freqs         = np.tile(freqs,( len(self.modes) , 1))
         self.hwavenumbers  = self.construct_hwavenumbers(freqs)
         self.amplitudes    = amplitudes if amplitudes else self.default_amplitudes(self.nwaves)
@@ -149,7 +151,8 @@ class InternalWaveField:
         """
         Desc:
         Interpolates a dispersion curve from the eigenvalues of
-        the vertical mode solver. 
+        the vertical mode solver. In this case independent_var
+        is the frequencies and dependent_var is wavenumber 
         """
         self.dispcurves=[]
         for m in self.modes:
@@ -158,7 +161,8 @@ class InternalWaveField:
                 cp,vr = self.vmodes.gen_vmodes_evp_f(ivar)
                 dependent_vars.append( ivar/np.sqrt( cp[m]))
                 self.vertical_comp[:,:,itr] = vr
-                    
+                self.vertical_grad[:,m,itr] = np.gradient(vr[:,m],self.zdiff)
+            
             #Using dictionary instead of interpolation so we can have small sets
             #of frequencies that the interpolation cannot support
             d  = dict(zip (independent_vars, dependent_vars ))
@@ -194,6 +198,7 @@ class InternalWaveField:
         else:
            raise KeyError
 
+
     def update_field(self,step):
         """
         Desc:
@@ -209,7 +214,8 @@ class InternalWaveField:
         Helper function for constructor to set all the various fields
         """
         self.range   = iwrange
-        self.depth   = iwdepth 
+        self.depth   = iwdepth
+        self.zdiff   = np.average(np.diff(iwdepth)) 
         self.bfrq    = bfrq if bfrq.size else self.cannonical_bfrq()
         self.vmodes  = iwvm.iw_vmodes(self.depth,self.bfrq)
         self.modes   = modes

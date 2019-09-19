@@ -65,9 +65,8 @@ iwf = InternalWaveField(iwrange,iwdepth,
 #Print parameters to users
 print("INPUT PARAMETERS:")
 print("\tFrequencies : " , freqs)
-print("\tAmplitudes ",amps)
-print("\tHeadings "  ,headings)
-print("\tHorizontal Waves :", [iwf.hwavenumbers[m] for m in iwf.modes])
+print("\tHeading & Amplitude : ",amps)
+print("\tHorizontal Wavenumber :", [iwf.hwavenumbers[m] for m in iwf.modes])
 
 #Make sampling coordinates
 coords = []

@@ -10,7 +10,7 @@ cd scripts
 ```
 This wil output either data files ( feather files) or a movie to the specified path under the data folder.
 
-##Data Output
+## Data Output
 The data files are binary files that represent a time frame. Each frame has a set of rows which contain the unique position , time , and displacement value. The file size will scale by the amount of spacial positions the user choices to sample (num x) * (num y ) * (num z). There is also a meta data file stored in the data directory that contains various parameters of the simulation. Each feather file can be read in as a dataframe using each python (panda dataframes) or R native dataframes.
 
 ```

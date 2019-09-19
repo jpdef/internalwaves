@@ -41,7 +41,7 @@ class InternalWaveSimulation:
 
 
     def run(self,coords=[]):
-        if len(self.timeaxis) > self.chunklim:
+        if len(self.timeaxis) > self.chunklim and self.ftype != 2:
             chunk_size = int( np.floor(len(self.timeaxis)/self.chunklim) )
             timechunks = self.make_chunks(chunk_size)
             for i,tc in self.progressbar(timechunks, "Long Simulation"):

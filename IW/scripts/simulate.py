@@ -9,7 +9,9 @@ import numpy as np
 import pandas as pd
 import feather
 import json
+import os 
 
+#Source local libraries
 sys.path.append('../src')
 
 from iw_field import InternalWaveField

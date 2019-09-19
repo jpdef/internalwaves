@@ -21,6 +21,7 @@ if (length(args) == 1) {
 inputs  <- fromJSON(file=args[1])
 meta    <- read_meta(inputs$path)
 
+
 #Ocean profile
 stratdf <- read_feather('../config/strat.fthr')
 strat   <- stratdf$strat

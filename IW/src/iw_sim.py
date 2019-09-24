@@ -25,8 +25,8 @@ class InternalWaveSimulation:
 
     def __init__(self,timeaxis,iwf,ftype=0,dpath="",fname="",chunklim=100):
         self.frames = []
-        self.fields = []
-        self.scalarfields = []
+        self.disp_fields = []
+        self.velo_fields = []
         self.timeaxis = timeaxis
         self.iwf = iwf
         self.ftype = ftype
@@ -48,7 +48,8 @@ class InternalWaveSimulation:
                 self.timeaxis = tc
                 self.simulate(coords=coords)
                 self.make_files(offset=i*chunk_size)
-                self.fields = []
+                self.disp_fields = []
+                self.velo_fields = []
                 self.frames = [] 
        
         else:
@@ -60,7 +61,8 @@ class InternalWaveSimulation:
             step = self.make_step(t)
             self.iwf.update_field(step)
             self.frames.append(self.iwf.to_dataframe(coords=coords,time=t))
-            self.fields.append(self.iwf.field)
+            self.disp_fields.append(self.iwf.disp_field)
+            self.velo_fields.append(self.iwf.velo_field)
 
 
     def progressbar(self,dataset,desc):
@@ -177,7 +179,7 @@ class InternalWaveSimulation:
 
     def update_animation(self,fig,ax,cbar_ax,frame):
         ax.set_title('%.2f hours' % np.multiply(frame,self.delta_t))
-        field = self.fields[frame]
+        field = self.disp_fields[frame]
         dist  = self.iwf.range
         depth = self.iwf.depth
         p = ax.contourf(dist,depth,field.real[0,:,:],20,cmap=cmocean.cm.thermal)

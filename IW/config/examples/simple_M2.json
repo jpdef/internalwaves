@@ -1,8 +1,8 @@
 {
  "range_end"  : 5e5,
- "range_res"  : 100,
+ "range_res"  : 500,
  "depth_end"  : 5e3,
- "depth_res"  : 100,
+ "depth_res"  : 500,
  "time_stop"  : 52e4,
  "time_step"  : 900,
  "x_samples"  : [25,50,75],

@@ -2,6 +2,7 @@
 #Desc : Library for solving vertical modes of internal waves
 #Auth : J. DeFilippis
 #Date : 2-15-2019
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import solve_bvp, quad,trapz
@@ -21,7 +22,7 @@ class iw_vmodes:
          depth coordinate strat(depth)
     """
 
-    def __init__(self,depth,N):
+    def __init__(self,depth,N=np.array([]),T=np.array([]),f=0):
         """
         Parameters:
           depth : array
@@ -29,10 +30,32 @@ class iw_vmodes:
           N : func, or array
               stratification of medium
         """
+        #Set Attributes
+        self.set_attributes(depth,N,T,f)
+
+        #Generate Modes 
+        lamb,vr = self.gen_vmodes_evp()
+        self.modes        = [ vr[:,m] for m in np.arange(0,len(vr)) ]
+        self.hwavenumbers =  f / np.sqrt(lamb)
+
+        #Generate other parameters
+        self.int_modes = self.gen_integral_modes()
+
+
+    def set_attributes(self,depth,N=np.array([]),T=np.array([]),f=0):
+        """
+        Desc : Set various attributes for the class
+        """
         self.depth = depth
-        self.N = N
+        if N.size: 
+            self.N = N  
+        else if T.size :
+            self.N = self.compute_bfrq(T,S)
+        else :
+            self.N = self.cannonical_bfrq()
+        
+        self.freq = f if f > 0 else 2*np.pi/(3600*24)
         self.modes = []
-        self.freqs = []
         self.hwavenumbers = []
     
 
@@ -68,39 +91,8 @@ class iw_vmodes:
             return
 
 
-    def gen_vmodes_evp_k(self,k=2*np.pi):
-        """
-        Desc : Solves helmoltz equation using an EVP solver 
-               techique  
-        Args :
-               k : float 
-                The horizontal wave number , default 2pi
-        Returns:
-               solution : array
-                 A solution as a function of the depth coordinate
-        """
-        #Physical Properties
-        H  = len(self.depth)
-        delta = (self.depth[H-1] - self.depth[0])/H
-        ksq = (k)**2
-        
-        #FDM stencil for centered second derivative
-        D2  = self.gen_tri_fdm(H,delta)
-        K2   = np.diag(np.ones(len(self.N))*ksq)
-        N2   = np.diag(self.N)
-        
-        #Eigen value problem IW equation
-        lamb,vr = eig(-N2,(D2-K2))
-
-        #Normalize
-        vr = self.normalize(vr)
  
-        self.modes  = [ vr[:,m] for m in np.arange(0,len(vr)) ]
-        self.freqs = np.sqrt(lamb)*k 
-        return lamb,vr
-   
- 
-    def gen_vmodes_evp_f(self,f=2*np.pi):
+    def gen_vmodes_evp(self,f=2*np.pi):
         """
         Desc : Solves helmoltz equation using an EVP solver 
                techique  
@@ -124,9 +116,23 @@ class iw_vmodes:
         #Eigen value problem IW equation
         lamb,vr = eig((F2-N2),D2)
         
-        self.modes        = [ vr[:,m] for m in np.arange(0,len(vr)) ]
-        self.hwavenumbers =  f / np.sqrt(lamb)
         return lamb,vr
+    
+        
+    def gen_integral_modes():
+        """
+        Desc : 
+        Generates the integral of each mode so that variables such as
+        pressure can be computed
+        """
+        int_modes = []
+        for m in self.modes:
+            chi = 1025 * ((self.N**2 - omega**2)/omega) * m  
+            int_mode  = trapz(self.chi[0:i],self.depth[0:i] for i in len(chi))
+            int_modes.append(int_mode)
+        
+        return int_modes
+
 
     #Normalization might now work for model
     def normalize(self,vr):
@@ -161,6 +167,19 @@ class iw_vmodes:
         ret /= delta**2
 
         return ret
+
+    
+    #Add the depth spacing to the stratifcation grad and check if this works for R script
+    def cannonical_bfrq(self):
+        """
+        Desc:
+        Cannonical example of a mid ocean Brunt Viasala frequency
+        depth profile. Mainly for testing purposes
+        """
+        d = max(self.depth)
+        sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
+        N     = np.sqrt(np.gradient(sigma))
+        return N/3600 #convert to cycle per second
 
 
     def mode_plot(self,n=3):

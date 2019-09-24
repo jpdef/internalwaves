@@ -32,11 +32,10 @@ class InternalWaveField:
         self.init_dispersion(freqs,amplitudes)
 
         #Compute 3D field from phase speeds and structure functions
-        self.disp_field = self.construct_disp_field(freqs)
-        self.velo_field = self.construct_velo_field(freqs)
+        self.field = self.construct_field(freqs)
         
     
-    def construct_disp_field(self,step=np.array([])):
+    def construct_field(self,step=np.array([])):
         """
         Desc:
         Constructs a 3D wave field from the vertical and horizontal
@@ -45,88 +44,51 @@ class InternalWaveField:
         field = self.empty_field()
                 
         #Initialize Field Components 
-        if not self.disp_field_components:
+        if not self.field_components:
             for n in range(self.nfreqs):
-                self.disp_field_components.append(self.construct_field_component(n))
+                self.field_components.append(
+                     self.construct_field_component(n))
         
         #Update Field Component Values
-        for n,fc in enumerate(self.disp_field_components):
+        for n,fc in enumerate(self.field_components):
            field += step[n]*fc if step.size else fc 
         
         return field   
-   
-    #TODO: need to multiply k/|k| and l/|k| for each horiztonal component 
-    def construct_velo_field(self,step=np.array([])):
-        """
-        Desc:
-        Constructs a 3D wave field from the vertical and horizontal
-        components by taking an outer product of the two vectors
-        """
-        field = self.empty_field()
-                
-        #Initialize Field Components 
-        if not self.velo_field_components:
-            for n in range(self.nfreqs):
-                self.velo_field_components.append(self.construct_velo_field_component(n))
-        
-        #Update Field Component Values
-        for n,fc in enumerate(self.velo_field_components):
-           field += step[n]*fc if step.size else fc 
-        
-        return field   
-
- 
-    def construct_disp_field_component(self,n):
+    
+    
+    def construct_field_component(self,n):
         """
         Desc:
         Constructs a 3D wave field componenent for a specific frequency/wavenumber
         depending on the choosen dependent variable. These components are then summed
         to give the total wavefield.
         """
-        zeta = self.empty_field()
+        field = self.empty_field()
        
         for i,m in enumerate(self.modes):
             psi  = self.horizontal_comp(i,n)
             phi  = self.vertical_comp[:,m,n]
             for zn in range(len(self.depth)):
-                zeta[zn,:,:] += psi*phi[zn]
+                field[zn,:,:] += psi*phi[zn]
        
-        return zeta 
+        return field
    
     
-    def construct_velo_field_component(self,n):
-        """
-        Desc:
-        Constructs a 3D wave field componenent for a specific frequency/wavenumber
-        depending on the choosen dependent variable. These components are then summed
-        to give the total wavefield.
-        """
-        zeta = self.empty_field()
-       
-        for i,m in enumerate(self.modes):
-            psi    = self.horizontal_comp(i,n)
-            phiz   = self.vertical_grad[:,m,n]
-            for zn in range(len(self.depth)):
-                zeta[zn,:,:] += psi*phiz[zn]
-       
-        return zeta 
-   
-    
-    def horizontal_comp(self,i,n):
+    def horizontal_comp(self,nm,nf):
         """
         Desc:
         Constructs a plane wave in the horizontal with a specific 
-        wavenumber and heading  
+        wavenumber and heading for mode index nm and frequency index nf 
         """
         xx,yy = np.meshgrid(self.range - self.offset[0],self.range - self.offset[1])
-        kmag  = self.hwavenumbers[i,n]
-        amps  = self.get_amplitude(i,n) 
+        kmag  = self.hwavenumbers[nm,nf]
+        amps  = self.get_amplitude(nm,nf) 
         psi   = np.zeros ( shape=xx.shape, dtype='complex128' )
-        for ah in list(zip( amps['amps'],amps['headings'])):
+        for ah in list(zip(amps['amps'],amps['headings'])):
             psi  += self.plane_wave(kmag,ah[0],ah[1],xx,yy) 
         return(psi)
-   
-    
+ 
+  
     def plane_wave(self,kmag,amp,heading,xx,yy):
         kx      = kmag*np.cos(heading)
         ky      = kmag*np.sin(heading)
@@ -260,7 +222,10 @@ class InternalWaveField:
         self.modes   = modes
         self.offset  = offset
         self.disp_field_components = [] 
+        self.velo_field_components = [] 
         self.disp_field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),
+                              dtype=complex)
+        self.velo_field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),
                               dtype=complex)
 
     #Add the depth spacing to the stratifcation grad and check if this works for R script
@@ -284,22 +249,27 @@ class InternalWaveField:
         """
     
         return self.select_data(coords,time) if coords else self.flatten_data() 
+   
     
     def select_data(self,coords,time):
          x = [self.range[c[0]] for c in coords] 
          y = [self.range[c[1]] for c in coords] 
          z = [self.depth[c[2]] for c in coords]  
          Z = [self.disp_field.real[c[2],c[1],c[0]] for c in coords]
+         W = [self.velo_field.real[c[2],c[1],c[0]] for c in coords]
          t = np.repeat(time,len(x))
         
-         return pd.DataFrame({"x" : x , "y" :  y , "z" : z , "t" : t, "disp" : Z})
+         return pd.DataFrame({"x" : x , "y" :  y , "z" : z ,
+                              "t" : t, "disp" : Z, "W" : W})
     
 
     def flatten_data(self):
         zeta = self.disp_field.real.flatten()
+        velo = self.velo_field.real.flatten()
         x    = np.ndarray(shape=(1,),dtype=float)
         y    = np.ndarray(shape=(1,),dtype=float)
         z    = np.ndarray(shape=(1,),dtype=float)
+        t = np.repeat(time,len(x))
        
         L = len(self.range)
         H = len(self.depth)
@@ -313,5 +283,6 @@ class InternalWaveField:
         for i,zi in enumerate(self.depth):
             z = zi*np.ones(L*L) if i == 0 else np.concatenate((z, zi*np.ones(L*L)))
         
-        return pd.DataFrame({"x" : x , "y" :  y , "z" : z , "disp" : zeta})
+        return pd.DataFrame({"x" : x , "y" :  y , "z" : z ,
+                             "t" : t , "disp" : zeta, "W" : velo})
 

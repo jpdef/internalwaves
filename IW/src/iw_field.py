@@ -3,7 +3,8 @@
 #Date : 6-26-2019
 
 import matplotlib.pyplot as plt
-import iw_vmodes as iwvm
+from iw_modes  import InternalWaveModes
+from iw_param  import Output
 import scipy
 import feather
 import pandas as pd
@@ -51,7 +52,14 @@ class InternalWaveField:
         
         #Update Field Component Values
         for n,fc in enumerate(self.field_components):
-           field += step[n]*fc if step.size else fc 
+           if step.size:
+               field['w'] += fc['w'] *step[n] 
+               field['u'] += fc['u'] *step[n] 
+               field['p'] += fc['p'] *step[n] 
+           else:
+               field['w'] += fc['w']
+               field['u'] += fc['u']
+               field['p'] += fc['p']
         
         return field   
     
@@ -65,12 +73,18 @@ class InternalWaveField:
         """
         field = self.empty_field()
        
-        for i,m in enumerate(self.modes):
-            psi  = self.horizontal_comp(i,n)
-            phi  = self.vertical_comp[:,m,n]
+        for nm,m in enumerate(self.modes):
+            psi  = self.horizontal_comp(m,n)
+            w    = self.iwmodes[n].w_modes[m]
+            p    = self.iwmodes[n].p_modes[m]
+            u    = self.iwmodes[n].u_modes[m]
             for zn in range(len(self.depth)):
-                field[zn,:,:] += psi*phi[zn]
-       
+                for xn in range(psi.shape[0]):
+                    for yn in range(psi.shape[1]):
+                        field[zn,xn,yn]['w']  += psi[xn,yn]*w[zn]
+                        field[zn,xn,yn]['u']  += psi[xn,yn]*u[zn]
+                        field[zn,xn,yn]['p']  += psi[xn,yn]*p[zn]
+      
         return field
    
     
@@ -81,7 +95,7 @@ class InternalWaveField:
         wavenumber and heading for mode index nm and frequency index nf 
         """
         xx,yy = np.meshgrid(self.range - self.offset[0],self.range - self.offset[1])
-        kmag  = self.hwavenumbers[nm,nf]
+        kmag  = self.iwmodes[nf].get_hwavenumber(nm)
         amps  = self.get_amplitude(nm,nf) 
         psi   = np.zeros ( shape=xx.shape, dtype='complex128' )
         for ah in list(zip(amps['amps'],amps['headings'])):
@@ -108,7 +122,8 @@ class InternalWaveField:
         """
         Desc:
         """ 
-        field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),dtype=complex)
+        field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth))
+                        ,dtype=[('w','complex'), ('u','complex'),('p','complex') ])
         return field
 
 
@@ -118,8 +133,6 @@ class InternalWaveField:
 
     def init_dispersion(self,freqs,amplitudes):
         """
-        self.vertical_comp[z_n, m, f_n] 
-        self.vertical_grad[z_n, m, f_n] 
             z_n depth grid point for vertical functions
             m   mode number
             f_n associated frequency
@@ -128,76 +141,23 @@ class InternalWaveField:
         self.nwaves = len(freqs)*len(self.modes)
         self.nfreqs = len(freqs)
         
-        self.vertical_comp = np.ndarray(shape=(D,D,self.nwaves ) )
-        self.vertical_grad = np.ndarray(shape=(D,D,self.nwaves ) )
-        self.freqs         = np.tile(freqs,( len(self.modes) , 1))
-        self.hwavenumbers  = self.construct_hwavenumbers(freqs)
+        
+        self.freqs         = freqs
+        self.iwmodes       = self.construct_modes(freqs)
         self.amplitudes    = amplitudes if amplitudes else self.default_amplitudes(self.nwaves)
 
 
-    def construct_hwavenumbers(self,freqs):
+    def construct_modes(self,freqs):
         """
         Desc:
-        Constructs a set of horizontal wavenumbers from the
-        set of input frequencies via the dispersion relations
+        Constructs a set of modes from the set of input frequencies 
+        via the dispersion relations. Mode objects contain wavenumbers
         """
-        #Make a interploations of dispersion for each mode
-        self.construct_dispersion_curves(freqs)
-
-        #Invert interpolation to compute wavenumber from input frequency
-        return self.transform_frequencies_to_wavenumber(freqs) 
-    
-
-    def construct_dispersion_curves(self,independent_vars):
-        """
-        Desc:
-        Interpolates a dispersion curve from the eigenvalues of
-        the vertical mode solver. In this case independent_var
-        is the frequencies and dependent_var is wavenumber 
-        """
-        self.dispcurves=[]
-        for m in self.modes:
-            dependent_vars = []
-            for itr,ivar in enumerate(independent_vars):
-                cp,vr = self.vmodes.gen_vmodes_evp_f(ivar)
-                dependent_vars.append( ivar/np.sqrt( cp[m]))
-                self.vertical_comp[:,:,itr] = vr
-                self.vertical_grad[:,m,itr] = np.gradient(vr[:,m],self.zdiff)
-            
-            #Using dictionary instead of interpolation so we can have small sets
-            #of frequencies that the interpolation cannot support
-            d  = dict(zip (independent_vars, dependent_vars ))
-            self.dispcurves.append(d)
-   
- 
-    def transform_wavenumber_to_frequencies(self,hwavenumbers):
-        """
-        Desc:
-        Converts  horizontal wavenumbers to frequencies using
-        the precomputed dispersion curves
-        """
-        freqs = []
-        if self.dispcurves:
-            for d in self.dispcurves:
-                freqs.append([ d[h] for h in hwavenumbers ])
-            return np.vstack(freqs)
-        else:
-           raise KeyError
-   
- 
-    def transform_frequencies_to_wavenumber(self,freqs):
-        """
-        Desc:
-        Converts frequencies to horizontal wavenumbers using
-        the precomputed dispersion curves
-        """
-        hwavenumbers = []
-        if self.dispcurves:
-           for d in self.dispcurves:
-               hwavenumbers.append( [ d[f] for f in freqs] )    
-           return np.vstack(hwavenumbers)
-        else:
-           raise KeyError
+        iwmodes = []
+        print(freqs)
+        for i in range(len(freqs)):
+            iwmodes.append(InternalWaveModes(self.depth,self.bfrq,freq=freqs[i]))
+        return iwmodes
 
 
     def update_field(self,step):
@@ -217,30 +177,11 @@ class InternalWaveField:
         self.range   = iwrange
         self.depth   = iwdepth
         self.zdiff   = np.average(np.diff(iwdepth)) 
-        self.bfrq    = bfrq if bfrq.size else self.cannonical_bfrq()
-        self.vmodes  = iwvm.iw_vmodes(self.depth,self.bfrq)
+        self.bfrq    = bfrq 
         self.modes   = modes
         self.offset  = offset
-        self.disp_field_components = [] 
-        self.velo_field_components = [] 
-        self.disp_field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),
-                              dtype=complex)
-        self.velo_field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth)),
-                              dtype=complex)
-
-    #Add the depth spacing to the stratifcation grad and check if this works for R script
-    def cannonical_bfrq(self):
-        """
-        Desc:
-        Cannonical example of a mid ocean Brunt Viasala frequency
-        depth profile. Mainly for testing purposes
-        """
-        d = max(self.depth)
-        sigma = 22 + 2.5*np.tanh(2*np.pi*(self.depth-.15*d)/d)
-        N     = np.sqrt(np.gradient(sigma))
-        return N/3600 #convert to cycle per second
-
-
+        self.field_components = [] 
+    
     def to_dataframe(self,coords=[],time=0):
         """
         Desc:
@@ -264,12 +205,13 @@ class InternalWaveField:
     
 
     def flatten_data(self):
-        zeta = self.disp_field.real.flatten()
-        velo = self.velo_field.real.flatten()
+        outputs = self.field.real.flatten()
         x    = np.ndarray(shape=(1,),dtype=float)
         y    = np.ndarray(shape=(1,),dtype=float)
         z    = np.ndarray(shape=(1,),dtype=float)
-        t = np.repeat(time,len(x))
+        t    = np.repeat(time,len(x))
+        Z    = [o.get("d") for o in output]
+        W    = [o.get("W") for o in output]
        
         L = len(self.range)
         H = len(self.depth)
@@ -284,5 +226,5 @@ class InternalWaveField:
             z = zi*np.ones(L*L) if i == 0 else np.concatenate((z, zi*np.ones(L*L)))
         
         return pd.DataFrame({"x" : x , "y" :  y , "z" : z ,
-                             "t" : t , "disp" : zeta, "W" : velo})
+                             "t" : t , "disp" : Z, "W" : W})
 

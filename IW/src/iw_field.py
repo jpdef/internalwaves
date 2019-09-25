@@ -56,10 +56,12 @@ class InternalWaveField:
                field['w'] += fc['w'] *step[n] 
                field['u'] += fc['u'] *step[n] 
                field['p'] += fc['p'] *step[n] 
+               field['Z'] += fc['Z'] *step[n] 
            else:
                field['w'] += fc['w']
                field['u'] += fc['u']
                field['p'] += fc['p']
+               field['Z'] += fc['Z']
         
         return field   
     
@@ -84,6 +86,7 @@ class InternalWaveField:
                         field[zn,xn,yn]['w']  += psi[xn,yn]*w[zn]
                         field[zn,xn,yn]['u']  += psi[xn,yn]*u[zn]
                         field[zn,xn,yn]['p']  += psi[xn,yn]*p[zn]
+                        field[zn,xn,yn]['Z']  += 1j*(psi[xn,yn]*w[zn] / self.freqs[n] )
       
         return field
    
@@ -123,7 +126,8 @@ class InternalWaveField:
         Desc:
         """ 
         field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth))
-                        ,dtype=[('w','complex'), ('u','complex'),('p','complex') ])
+                        ,dtype=[('w','complex'), ('u','complex'),('p','complex'),
+                                ('Z','complex') ])
         return field
 
 

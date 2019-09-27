@@ -37,7 +37,7 @@ class InternalWaveField:
         self.field = self.construct_field()
         
     
-    def construct_field(self,steps=np.array([])):
+    def construct_field(self,step=np.array([])):
         """
         Desc:
         Constructs a 3D wave field from the vertical and horizontal
@@ -53,15 +53,13 @@ class InternalWaveField:
       
         #Update Field Component Values
         for n,fc in enumerate(self.field_components):
-           if steps.size:
-               print("stepping fields")
+           if step.size:
                field['w'] += fc['w']*step[n] 
                field['u'] += fc['u']*step[n] 
                field['v'] += fc['v']*step[n] 
                field['p'] += fc['p']*step[n] 
                field['d'] += fc['d']*step[n] 
            else:
-               print("adding fields")
                field['w'] += fc['w']
                field['u'] += fc['u']
                field['v'] += fc['v']
@@ -123,7 +121,6 @@ class InternalWaveField:
 
   
     def plane_wave(self,kmag,amp,heading,xx,yy):
-        print(amp,heading)
         kx      = kmag*np.cos(heading)
         ky      = kmag*np.sin(heading)
         psi     = amp*np.exp(2*np.pi*1j*(kx*xx +ky*yy)) 
@@ -187,7 +184,7 @@ class InternalWaveField:
         Efficient way to timestep or change distrubution after having calculated all
         the horizontal and vertical components
         """
-        self.disp_field = self.construct_disp_field(step)
+        self.field = self.construct_field(step=step)
 
  
     def set_attributes(self,bfrq,iwrange,iwdepth,modes,f,offset):
@@ -218,22 +215,28 @@ class InternalWaveField:
          x = [self.range[c[0]] for c in coords] 
          y = [self.range[c[1]] for c in coords] 
          z = [self.depth[c[2]] for c in coords]  
-         d = [self.disp_field.real[c[2],c[1],c[0]] for c in coords]
-         w = [self.velo_field.real[c[2],c[1],c[0]] for c in coords]
+         d = [self.field[c[2],c[1],c[0]]['d'].real for c in coords]
+         p = [self.field[c[2],c[1],c[0]]['p'].real for c in coords]
+         u = [self.field[c[2],c[1],c[0]]['u'].real for c in coords]
+         v = [self.field[c[2],c[1],c[0]]['v'].real for c in coords]
+         w = [self.field[c[2],c[1],c[0]]['w'].real for c in coords]
          t = np.repeat(time,len(x))
         
          return pd.DataFrame({"x" : x , "y" :  y , "z" : z ,
-                              "t" : t , "d" : d, "w" : w})
+                              "t" : t , "d" : d, "p" : p,
+                              "u" : u , "v" : v, "w" : w})
     
 
     def flatten_data(self):
-        outputs = self.field.real.flatten()
         x    = np.ndarray(shape=(1,),dtype=float)
         y    = np.ndarray(shape=(1,),dtype=float)
         z    = np.ndarray(shape=(1,),dtype=float)
         t    = np.repeat(time,len(x))
-        Z    = [o.get("d") for o in output]
-        W    = [o.get("W") for o in output]
+        d = self.field['d'].real
+        p = self.field['p'].real
+        u = self.field['u'].real
+        v = self.field['v'].real
+        w = self.field['w'].real
        
         L = len(self.range)
         H = len(self.depth)
@@ -247,6 +250,7 @@ class InternalWaveField:
         for i,zi in enumerate(self.depth):
             z = zi*np.ones(L*L) if i == 0 else np.concatenate((z, zi*np.ones(L*L)))
         
-        return pd.DataFrame({"x" : x , "y" :  y , "z" : z ,
-                             "t" : t , "disp" : Z, "W" : W})
+        return pd.DataFrame({"x" : x , "y" :  y , "z" : z,
+                              "t" : t , "d" : d, "p" : p,
+                              "u" : u , "v" : v, "w" : w})
 

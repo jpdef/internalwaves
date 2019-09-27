@@ -22,21 +22,22 @@ class InternalWaveField:
                  modes=np.array([0]),
                  amplitudes=[],
                  bfrq=np.array([]), 
+                 f=1.1583e-5,
                  offset=[0,0]):
         
         print("Intializing wavefield")
         
         #Set all fields in object
-        self.set_attributes(bfrq,iwrange,iwdepth,modes,offset)        
+        self.set_attributes(bfrq,iwrange,iwdepth,modes,f,offset)        
         
         #Compute phase speeds and vertical structure functions
         self.init_dispersion(freqs,amplitudes)
 
         #Compute 3D field from phase speeds and structure functions
-        self.field = self.construct_field(freqs)
+        self.field = self.construct_field()
         
     
-    def construct_field(self,step=np.array([])):
+    def construct_field(self,steps=np.array([])):
         """
         Desc:
         Constructs a 3D wave field from the vertical and horizontal
@@ -49,19 +50,23 @@ class InternalWaveField:
             for n in range(self.nfreqs):
                 self.field_components.append(
                      self.construct_field_component(n))
-        
+      
         #Update Field Component Values
         for n,fc in enumerate(self.field_components):
-           if step.size:
-               field['w'] += fc['w'] *step[n] 
-               field['u'] += fc['u'] *step[n] 
-               field['p'] += fc['p'] *step[n] 
-               field['Z'] += fc['Z'] *step[n] 
+           if steps.size:
+               print("stepping fields")
+               field['w'] += fc['w']*step[n] 
+               field['u'] += fc['u']*step[n] 
+               field['v'] += fc['v']*step[n] 
+               field['p'] += fc['p']*step[n] 
+               field['d'] += fc['d']*step[n] 
            else:
+               print("adding fields")
                field['w'] += fc['w']
                field['u'] += fc['u']
+               field['v'] += fc['v']
                field['p'] += fc['p']
-               field['Z'] += fc['Z']
+               field['d'] += fc['d']
         
         return field   
     
@@ -76,17 +81,19 @@ class InternalWaveField:
         field = self.empty_field()
        
         for nm,m in enumerate(self.modes):
-            psi  = self.horizontal_comp(m,n)
-            w    = self.iwmodes[n].w_modes[m]
-            p    = self.iwmodes[n].p_modes[m]
-            u    = self.iwmodes[n].u_modes[m]
+            psi,psi_u,psi_v  = self.horizontal_comp(m,n)
+            d    = self.iwmodes[n].d_modes[m]
+            p    =  1j*self.iwmodes[n].p_modes[m]
+            u    =  1j*self.iwmodes[n].u_modes[m]  
+            w    = -1j*self.iwmodes[n].d_modes[m] * self.freqs[n]
             for zn in range(len(self.depth)):
                 for xn in range(psi.shape[0]):
                     for yn in range(psi.shape[1]):
-                        field[zn,xn,yn]['w']  += psi[xn,yn]*w[zn]
-                        field[zn,xn,yn]['u']  += psi[xn,yn]*u[zn]
+                        field[zn,xn,yn]['d']  += psi[xn,yn]*d[zn]
+                        field[zn,xn,yn]['u']  += psi_u[xn,yn]*u[zn]
+                        field[zn,xn,yn]['v']  += psi_v[xn,yn]*u[zn]
                         field[zn,xn,yn]['p']  += psi[xn,yn]*p[zn]
-                        field[zn,xn,yn]['Z']  += 1j*(psi[xn,yn]*w[zn] / self.freqs[n] )
+                        field[zn,xn,yn]['w']  += psi[xn,yn]*w[zn]  
       
         return field
    
@@ -97,16 +104,26 @@ class InternalWaveField:
         Constructs a plane wave in the horizontal with a specific 
         wavenumber and heading for mode index nm and frequency index nf 
         """
-        xx,yy = np.meshgrid(self.range - self.offset[0],self.range - self.offset[1])
-        kmag  = self.iwmodes[nf].get_hwavenumber(nm)
-        amps  = self.get_amplitude(nm,nf) 
-        psi   = np.zeros ( shape=xx.shape, dtype='complex128' )
+        xx,yy  = np.meshgrid(self.range - self.offset[0],self.range - self.offset[1])
+        kmag   = self.iwmodes[nf].get_hwavenumber(nm)
+        sqsum  = np.sqrt(self.freqs[nf]**2 + self.f**2)
+        r1     = self.freqs[nf]/sqsum
+        r2     = self.f/sqsum
+        amps   = self.get_amplitude(nm,nf)
+        psi    = np.zeros ( shape=xx.shape, dtype='complex128' )
+        psi_u  = np.zeros ( shape=xx.shape, dtype='complex128' )
+        psi_v  = np.zeros ( shape=xx.shape, dtype='complex128' )
         for ah in list(zip(amps['amps'],amps['headings'])):
-            psi  += self.plane_wave(kmag,ah[0],ah[1],xx,yy) 
-        return(psi)
- 
+            pw     = self.plane_wave(kmag,ah[0],ah[1],xx,yy)
+            psi    += pw
+            psi_u  += pw*(r1*np.cos(ah[1]) + 1j*r2*np.sin(ah[1])) 
+            psi_v  += pw*(r2*np.sin(ah[1]) - 1j*r2*np.cos(ah[1]))
+        
+        return(psi,psi_u,psi_v)
+
   
     def plane_wave(self,kmag,amp,heading,xx,yy):
+        print(amp,heading)
         kx      = kmag*np.cos(heading)
         ky      = kmag*np.sin(heading)
         psi     = amp*np.exp(2*np.pi*1j*(kx*xx +ky*yy)) 
@@ -126,8 +143,8 @@ class InternalWaveField:
         Desc:
         """ 
         field = np.zeros(shape=(len(self.range),len(self.range),len(self.depth))
-                        ,dtype=[('w','complex'), ('u','complex'),('p','complex'),
-                                ('Z','complex') ])
+                        ,dtype=[('d','complex'),('w','complex') ,('p','complex'),
+                                ('u','complex'),('v','complex') ])
         return field
 
 
@@ -173,7 +190,7 @@ class InternalWaveField:
         self.disp_field = self.construct_disp_field(step)
 
  
-    def set_attributes(self,bfrq,iwrange,iwdepth,modes,offset):
+    def set_attributes(self,bfrq,iwrange,iwdepth,modes,f,offset):
         """
         Desc:
         Helper function for constructor to set all the various fields
@@ -183,6 +200,7 @@ class InternalWaveField:
         self.zdiff   = np.average(np.diff(iwdepth)) 
         self.bfrq    = bfrq 
         self.modes   = modes
+        self.f       = f
         self.offset  = offset
         self.field_components = [] 
     
@@ -200,12 +218,12 @@ class InternalWaveField:
          x = [self.range[c[0]] for c in coords] 
          y = [self.range[c[1]] for c in coords] 
          z = [self.depth[c[2]] for c in coords]  
-         Z = [self.disp_field.real[c[2],c[1],c[0]] for c in coords]
-         W = [self.velo_field.real[c[2],c[1],c[0]] for c in coords]
+         d = [self.disp_field.real[c[2],c[1],c[0]] for c in coords]
+         w = [self.velo_field.real[c[2],c[1],c[0]] for c in coords]
          t = np.repeat(time,len(x))
         
          return pd.DataFrame({"x" : x , "y" :  y , "z" : z ,
-                              "t" : t, "disp" : Z, "W" : W})
+                              "t" : t , "d" : d, "w" : w})
     
 
     def flatten_data(self):

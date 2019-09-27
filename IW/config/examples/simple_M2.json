@@ -10,7 +10,7 @@
  "z_samples"  : [5,10,15,20,25],
  "freqs"      : [0.0805],
  "modes"      : [0],
- "amps_real"  : [[10]],
+ "amps_real"  : [[50]],
  "amps_imag"  : [[0]],
  "headings"   : [[45]],
  "path"       : "../data/example1",

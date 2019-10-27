@@ -16,7 +16,8 @@ sys.path.append('../src')
 
 from iw_field import InternalWaveField
 from iw_sim   import InternalWaveSimulation
-
+from map_scalars import map_scalars
+from map_scalars import map_sound_speed
 
 cph = 3600
 
@@ -85,5 +86,6 @@ iws.run(coords=coords)
                 
                 
                 
-#Add scalar field values                
-
+#Add scalar field values
+print("Mapping sound profile")  
+map_scalars(p['path'],'c',map_sound_speed)

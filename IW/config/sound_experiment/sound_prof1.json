@@ -3,7 +3,7 @@
  "range_res"  : 25,
  "depth_end"  : 5e3,
  "depth_res"  : 25,
- "time_stop"  : 52e4,
+ "time_stop"  : 9e4,
  "time_step"  : 900,
  "x_samples"  : [],
  "y_samples"  : [],

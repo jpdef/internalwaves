@@ -18,7 +18,7 @@ import functools
 class InternalWaveSimulation:
     """
     Desc: 
-    A class to generate time stepped interwave
+    A class to generate time stepped internalwave
     fields using numerical methods
 
     """

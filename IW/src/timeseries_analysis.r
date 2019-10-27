@@ -92,8 +92,8 @@ read_data_dir <- function(path,timesamples,epsi){
     ds <- merge_time_frames(path,timesamples)
     
     #Add some noise
-    noise <- epsi*rnorm(length(ds$disp)) 
-    ds$disp <- ds$disp + noise
+    noise <- epsi*rnorm(length(ds$d)) 
+    ds$d <- ds$d + noise
     return (ds)
 }
 
@@ -102,6 +102,13 @@ read_data_dir <- function(path,timesamples,epsi){
 #                                                 # 
 ###################################################
 
+plot_ts <- function(ds,xi,yi,zi){
+    xs <- unique(ds$x)[xi]
+    ys <- unique(ds$y)[yi]
+    zs <- unique(ds$z)[zi]
+    ts <- ds[ ds$x==xs & ds$y == ys & ds$z == zs ,]
+    plot(ts$t,ts$d,type='l')
+}
 
 takespec <- function(ds,s=1:30,scale=1,xlab="Freq",
                      ylab="Spec Density",title="Spectrum"){

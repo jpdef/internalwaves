@@ -208,7 +208,7 @@ class InternalWaveField:
         dataframe for use and convience
         """
     
-        return self.select_data(coords,time) if coords else self.flatten_data() 
+        return self.select_data(coords,time) if coords else self.flatten_data(time) 
    
     
     def select_data(self,coords,time):
@@ -227,21 +227,21 @@ class InternalWaveField:
                               "u" : u , "v" : v, "w" : w})
     
 
-    def flatten_data(self):
+    def flatten_data(self,time):
         x    = np.ndarray(shape=(1,),dtype=float)
         y    = np.ndarray(shape=(1,),dtype=float)
         z    = np.ndarray(shape=(1,),dtype=float)
-        t    = np.repeat(time,len(x))
-        d = self.field['d'].real
-        p = self.field['p'].real
-        u = self.field['u'].real
-        v = self.field['v'].real
-        w = self.field['w'].real
+        d = self.field['d'].real.flatten()
+        p = self.field['p'].real.flatten()
+        u = self.field['u'].real.flatten()
+        v = self.field['v'].real.flatten()
+        w = self.field['w'].real.flatten()
        
         L = len(self.range)
         H = len(self.depth)
 
         x = np.tile(self.range,L*H) 
+        t = np.repeat(time,len(x))
            
         for i,yi in enumerate(self.range):
             y = yi*np.ones(len(self.range)) if i == 0 else np.concatenate((y, yi*np.ones(L)))

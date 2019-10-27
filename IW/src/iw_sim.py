@@ -110,9 +110,6 @@ class InternalWaveSimulation:
         elif self.ftype==1:
             self.make_csvfiles()
         
-        elif self.ftype==2:
-            self.make_animation()
-
 
     def make_featherfiles(self,offset=0):
         for t,f in self.progressbar(self.frames,"Writing to Disk"):
@@ -141,48 +138,6 @@ class InternalWaveSimulation:
         pass 
 
     
-    def make_animation(self):
-        fig, ax = plt.subplots()
-        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        dist  = self.iwf.range/1000
-        depth = self.iwf.depth/1000
-        self.set_animation_attributes(fig,ax) 
-        
-        #First Frame
-        zeros  = np.zeros(shape=(self.iwf.field.shape[0] , self.iwf.field.shape[2] ) )
-        p = ax.contourf(dist,depth,zeros,20,cmap=cmocean.cm.thermal)
-        
-        #Init and update function
-        init = functools.partial(self.init_animation,fig,ax,p,cbar_ax)
-        update = functools.partial(self.update_animation,fig,ax,cbar_ax)
-       
-        #Compile Animation
-        print("Creating Animation it may take awhile")
-        ani = FuncAnimation(fig, update, frames=np.arange(0,len(self.timeaxis),1),init_func=init, blit=False)
-        path = os.path.join(self.dpath,'animation.mp4')
-        ani.save(path)
-
-
-    def set_animation_attributes(self,fig,ax):
-        #ax.invert_yaxis()
-        ax.set_xlabel('Range Km')
-        ax.set_ylabel('Depth Km')
-        
-    def init_animation(self,fig,ax,p,cbar_ax):
-        fig.subplots_adjust(right=0.8)
-        cbar = fig.colorbar(p, cax=cbar_ax)
-        cbar.set_label('Displacement (m)')
-        return p
-
-    def update_animation(self,fig,ax,cbar_ax,frame):
-        ax.set_title('%.2f hours' % np.multiply(frame,self.delta_t))
-        field = self.fields[frame]
-        dist  = self.iwf.range
-        depth = self.iwf.depth
-        p = ax.contourf(dist,depth,field.real[0,:,:],20,cmap=cmocean.cm.thermal)
-        cbar_ax.cla()
-        fig.colorbar(p, cax=cbar_ax)
-        return p
 
     def compute_file_size(self):
         pass

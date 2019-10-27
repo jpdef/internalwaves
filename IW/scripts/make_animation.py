@@ -5,6 +5,7 @@ import numpy as np
 import functools
 import cmocean
 import glob
+import os
 
 def plot_depth_slice(df,ax,index,pcol):
     x = df['x'].unique()
@@ -43,11 +44,14 @@ def plot_lat_slice(df,ax,index,pcol):
     return p
 
  
-def make_animation(files,plot_func):
+def make_animation(path,plot_func,findex=0):
     fig, ax = plt.subplots()
     cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
     set_animation_attributes(fig,ax) 
     
+    files = get_file_list(path)
+    files = files[:findex] if findex >= 0 else files 
+     
     #First Frame
     df = feather.read_dataframe(files[0])
     p = plot_func(df,ax)
@@ -88,3 +92,6 @@ def update_animation(fig,ax,cbar_ax,plot_func,frame):
     fig.colorbar(p, cax=cbar_ax)
     return p
 
+def get_file_list(path,fpat="run*"):
+    files = glob.glob(os.path.join(path,fpat))
+    return sorted(files)

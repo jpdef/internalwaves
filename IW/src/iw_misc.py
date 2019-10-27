@@ -1,6 +1,5 @@
 import numpy as np
 
-
 #Constants
 b  = 0 
 No = 0

@@ -1,0 +1,18 @@
+{
+ "range_end"  : 5e5,
+ "range_res"  : 25,
+ "depth_end"  : 5e3,
+ "depth_res"  : 25,
+ "time_stop"  : 52e4,
+ "time_step"  : 900,
+ "x_samples"  : [],
+ "y_samples"  : [],
+ "z_samples"  : [],
+ "freqs"      : [0.0805],
+ "modes"      : [0,1,2],
+ "amps_real"  : [[10,10,10],[10,10,10],[10,10,10]],
+ "amps_imag"  : [[0,0,0],[0,0,0],[0,0,0]],
+ "headings"   : [[0,60,90],[0,60,90],[0,60,90]],
+ "path"       : "../data/sound_prof_3",
+ "ftype"      : 0
+ }

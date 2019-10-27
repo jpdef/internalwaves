@@ -86,6 +86,5 @@ iws.run(coords=coords)
                 
                 
                 
-#Add scalar field values
-print("Mapping sound profile")  
+#Mapping Sound Profile onto IW Field
 map_scalars(p['path'],'c',map_sound_speed)

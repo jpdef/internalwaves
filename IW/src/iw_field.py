@@ -4,7 +4,6 @@
 
 import matplotlib.pyplot as plt
 from iw_modes  import InternalWaveModes
-from iw_param  import Output
 import scipy
 import feather
 import pandas as pd

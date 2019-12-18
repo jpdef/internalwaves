@@ -20,4 +20,9 @@ def map_sound_speed(df):
     z = df['z']
     d = df['d']
     return misc.sound_prof_munk(z) + misc.sound_grad_munk(z)*d
+
+def map_sound_speed_anom(df):
+    z = df['z']
+    d = df['d']
+    return misc.sound_grad_munk(z)*d
   

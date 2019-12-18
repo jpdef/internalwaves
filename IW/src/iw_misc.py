@@ -45,3 +45,10 @@ def sound_grad_munk(z):
 #Average depth described by munk profile
 def zbar (z):
     return 2*(z-1300)/1300
+
+
+#Kspace Plot
+def kspace_plot(ps):
+    pass
+
+

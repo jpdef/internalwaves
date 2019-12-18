@@ -21,7 +21,7 @@ class InternalWaveField:
                  modes=np.array([0]),
                  amplitudes=[],
                  bfrq=np.array([]), 
-                 f=1.1583e-5,
+                 f=1.1605e-5, #non angular rotation rate of earth
                  offset=[0,0]):
         
         print("Intializing wavefield")
@@ -173,7 +173,7 @@ class InternalWaveField:
         iwmodes = []
         print(freqs)
         for i in range(len(freqs)):
-            iwmodes.append(InternalWaveModes(self.depth,self.bfrq,freq=freqs[i]))
+            iwmodes.append(InternalWaveModes(self.depth,self.bfrq,freq=freqs[i],f=self.f))
         return iwmodes
 
 

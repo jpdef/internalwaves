@@ -18,6 +18,7 @@ from iw_field import InternalWaveField
 from iw_sim   import InternalWaveSimulation
 from map_scalars import map_scalars
 from map_scalars import map_sound_speed
+from map_scalars import map_sound_speed_anom
 
 cph = 3600
 
@@ -88,3 +89,4 @@ iws.run(coords=coords)
                 
 #Mapping Sound Profile onto IW Field
 map_scalars(p['path'],'c',map_sound_speed)
+map_scalars(p['path'],'ca',map_sound_speed_anom)

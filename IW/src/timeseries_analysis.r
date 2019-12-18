@@ -71,31 +71,87 @@ multidim_samples <- function(path,coords,timesamples){
 
 }
 
-merge_time_frames <- function(path,timesamples){
+
+subsample <- function(ds,xsamples=c(),ysamples=c(),zsamples=c()){
+        if (length(xsamples) != 0 ){
+           xf <- unique(ds$x)[xsamples]
+           ds <- ds[ds$x %in% xf,]
+        }
+        
+        if (length(ysamples) != 0 ){
+           yf <- unique(ds$y)[ysamples]
+           ds <- ds[ds$y %in% yf,]
+            
+        }
+        
+        if (length(zsamples) != 0 ){
+           zf <- unique(ds$z)[zsamples]
+           ds <- ds[ds$z %in% zf,]
+            
+        }
+    return(ds)
+}
+
+dipsample <- function(ds,xsamples=c(),ysamples=c(),zsamples=c(),center=c()){
+        if (length(xsamples) != 0 ){
+           xf <- unique(ds$x)[c(xsamples,center[1])]
+           yc <- unique(ds$y)[center[2]]
+           ds1 <- ds[ds$x %in% xf & ds$y == yc,]
+        }
+        
+        if (length(ysamples) != 0 ){
+           yf <- unique(ds$y)[c(ysamples,center[2])]
+           xc <- unique(ds$y)[center[1]]
+           ds2 <- ds[ds$y %in% yf & ds$x == xc,]
+            
+        }
+        
+        ds <- rbind(ds1,ds2)
+    
+        if (length(zsamples) != 0 ){
+           zf <- unique(ds$z)[zsamples]
+           ds <- ds[ds$z %in% zf,]
+            
+        }
+    return(ds)
+}
+
+
+
+
+merge_time_frames <-function(path,timesamples=c(),xsamples=c(),ysamples=c(),zsamples=c(),center=c()){
     meta  <- read_meta(path)
     files <- list.files(path=path,pattern="^run")
     df   <- data.frame()
     for (f in files[timesamples] ){
         fname =  paste(path,f,sep='/')
         frame <- read_feather(fname)
+        if (length(center)==0){
+            frame <- subsample(frame,xsamples,ysamples,zsamples)
+        }else{
+            frame <-dipsample(frame,xsamples,ysamples,zsamples,center)
+            
+        }
         df    <- rbind(df,frame)
     }
     return ( df )
 
 }
 
-read_data_dir <- function(path,timesamples,epsi){
-    #Setup datapath and read metafile
-    meta    <- read_meta(path)
-    
+
+read_data_dir <- function(path,epsi,timesamples=c(),xsamples=c(),ysamples=c(),zsamples=c(),center=c()){
     #Read in the data
-    ds <- merge_time_frames(path,timesamples)
+    ds <- merge_time_frames(path,timesamples,xsamples,ysamples,zsamples,center)
+    
+    #Select only on correct variables
+    ds <- subset(ds, select=c(x,y,z,t,d))
     
     #Add some noise
     noise <- epsi*rnorm(length(ds$d)) 
     ds$d <- ds$d + noise
     return (ds)
 }
+
 
 ###################################################
 #              PLOTS + MISC                       # 
@@ -119,3 +175,12 @@ takespec <- function(ds,s=1:30,scale=1,xlab="Freq",
     title(title)
 }
 
+
+#Plot a time series at a specific spacial points
+plot_ts <- function(ds,xi,yi,zi){
+    xs <- unique(ds$x)[xi]
+    ys <- unique(ds$y)[yi]
+    zs <- unique(ds$z)[zi]
+    ts <- ds[ ds$x==xs & ds$y == ys & ds$z == zs ,]
+    plot(ts$t,ts$d,type='l')
+}

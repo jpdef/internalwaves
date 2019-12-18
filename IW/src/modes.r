@@ -7,7 +7,7 @@ library(geigen)
 
 cannonical_sigma <-function(depth){
     d <- max(depth)
-    sigma <- 22 + 2.5*tanh(2*pi*(depth - .15*d)/d)
+    sigma <- 22 + tanh(2*pi*(depth - .15*d)/d)
     return(sigma)
 }
 
@@ -42,22 +42,21 @@ generate_vert_modes <- function(depth,strat,freq){
 }
 
 
-# Note factor of 7 needs to be fixed disagreement b/t
-# python modes and R modes
 evaluate_mode <- function(ev,depth,mode,z){
     f <- approxfun(depth,ev$vectors[,mode])
-    col <- f(z)/7
+    col <- f(z)
     return(col)
 }
 
 
 generate_wavenumbers <- function(depth,strat,omega,modes){
     wn <- c()
+    f = 1.1605e-5
     for (o in unique(omega)){
         e <- generate_vert_modes(depth,strat,o)
-        wnn <- o/sqrt( e$values[modes] )
+        wnn <- sqrt( (o^2 - f^2) / e$values[modes] )
         wn <- c(wn,wnn) 
-   }
+    }
     return(wn)
 }
 
@@ -73,6 +72,7 @@ generate_mode_matrix <- function(depth,strat,ps,ds){
        
        for (m in modes) {
            mv <-  evaluate_mode(ev,depth,m,ds$z)
+           
            #Number of wavenumbers per mode,frequency
            nk <-  nrow(ps[ps$omega == f & ps$modes == m,])
            Mm <-  matrix(mv,length(mv),nk)
@@ -83,3 +83,17 @@ generate_mode_matrix <- function(depth,strat,ps,ds){
 }
 
 
+generate_parameter_space <- function(omega,modes,k,headings){
+    kx <- ky <- c()
+    for (ks in k) {
+        kx <- c(kx,ks*cos( pi * headings/180))
+        ky <- c(ky,ks*sin( pi * headings/180))
+    }
+    ps <- data.frame(k=rep(k,each=length(headings)),heading=headings, 
+                        kx=kx,ky=ky,
+                        omega=rep(omega,each=length(modes)*length(headings)),
+                        modes=rep(modes,each=length(headings)) ) 
+       
+    ps <- ps[order(ps$omega,ps$modes),]
+    return(ps)
+}

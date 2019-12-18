@@ -20,7 +20,7 @@ make_manifold <- function(samples,params,basis){
 
 
 #Creates inverse matrix codifing all the basis functions
-make_inv_matrix <- function(ds,ps){
+make_inv_matrix <- function(ds,ps,strat,strat_depth){
     
     #Sinsoid Basis
     real <- cos(2*pi*(ds$x%*%t(ps$kx) + ds$y%*%t(ps$ky) - ds$t%*%t(ps$omega)) )
@@ -28,7 +28,7 @@ make_inv_matrix <- function(ds,ps){
     SB <- cbind(real,img)
     
     #Modal Basis
-    V <- generate_mode_matrix(depth,strat,ps,ds)
+    V <- generate_mode_matrix(strat_depth,strat,ps,ds)
     MB <- cbind(V,V) 
     
     return (MB*SB)
@@ -84,6 +84,9 @@ tappered_least_square <- function(H,obs){
     
 }
 
+
+
+
 ###################################################
 #                  FWRD FUNCTIONS                 # 
 #                                                 # 
@@ -93,7 +96,7 @@ tappered_least_square <- function(H,obs){
 make_forecast <- function(ds_fut,ps){
     a<-c(ps$a,ps$b)
     H2 <- make_inv_matrix(ds_fut,ps)
-    ds_fut['disp_est'] <- H2%*%a
+    ds_fut['d_est'] <- H2%*%a
     return (ds_fut)
 }
 
@@ -101,8 +104,8 @@ forecast_error <- function(ds_fut){
     rms_error <- c()
     time <- unique(ds_fut$t)
     for (tt in time ) {
-        dt  <- ds_fut$disp[ds_fut$t == tt]
-        de  <- ds_fut$disp_est[ds_fut$t == tt]
+        dt  <- ds_fut$d[ds_fut$t == tt]
+        de  <- ds_fut$d_est[ds_fut$t == tt]
         rms_diff <- sqrt(mean( (dt - de)**2  ))
         rms_de   <- sqrt(mean( de**2 ) )
         rms_error <- c(rms_error,rms_diff/rms_de)

@@ -22,7 +22,7 @@ class InternalWaveModes:
          depth coordinate strat(depth)
     """
 
-    def __init__(self,depth,N2=np.array([]),freq=0,f=1.1583e-5,
+    def __init__(self,depth,N2=np.array([]),freq=0,f=1.1605e-5,
                  num_modes=1):
         """
         Parameters:
@@ -165,38 +165,11 @@ class InternalWaveModes:
         d = max(self.depth)
         diff  = np.average(np.diff(self.depth))
         sigma = 22 + np.tanh(2*np.pi*(self.depth- d*.15)/d)
-        N2    = np.gradient(sigma,diff)/8
+        N2    = np.gradient(sigma,diff)/(2*diff)
         return N2
 
 
-    def mode_plot(self,n=3):
-        """
-        Desc : Generates a depth plot of stratriciation 
-               against the first n modes
-        Returns :
-                fig,ax : matplotlib figure and axes
-        """
-        f, (ax1,ax2,ax3,ax4) = plt.subplots(1,4,sharey=True)
-        
-        #Stratification
-        ax1.invert_yaxis()
-        ax1.plot((3600/(2*np.pi))*np.sqrt(self.N2),self.depth)
-        ax1.set_title("Stratification")
-        ax1.set_xlabel("CPH")
     
-        #Modes
-        for i in np.arange(0,n):
-            wm = self.d_modes[i]
-            pm = self.p_modes[i]
-            um = self.u_modes[i]
-            ax2.plot(wm, self.depth, label="mode "+str(wm))
-            ax3.plot(pm, self.depth, label="mode "+str(pm))
-            ax4.plot(um, self.depth, label="mode "+str(um))
-        ax2.set_title("D Modes")
-        ax3.set_title("P Modes")
-        ax4.set_title("U Modes")
-       
-        return f, (ax1,ax2) 
     
     
     #deprecated

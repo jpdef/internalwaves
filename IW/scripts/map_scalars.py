@@ -1,6 +1,6 @@
 import os
 import feather
-import src.iw_misc as misc
+import iw_misc
 from tqdm import tqdm
 
 #Maps a new columns onto a set of dataframes
@@ -19,10 +19,10 @@ def map_scalars(path,out_col,fn):
 def map_sound_speed(df):
     z = df['z']
     d = df['d']
-    return misc.sound_prof_munk(z) + misc.sound_grad_munk(z)*d
+    return iw_misc.sound_prof_munk(z) + iw_misc.sound_grad_munk(z)*d
 
 def map_sound_speed_anom(df):
     z = df['z']
     d = df['d']
-    return misc.sound_grad_munk(z)*d
+    return iw_misc.sound_grad_munk(z)*d
   

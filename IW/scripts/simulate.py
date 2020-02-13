@@ -12,7 +12,8 @@ import json
 import os 
 
 #Source local libraries
-sys.path.append('../src')
+sys.path.append('../src/iw_model')
+sys.path.append('../src/misc')
 
 from iw_field import InternalWaveField
 from iw_sim   import InternalWaveSimulation

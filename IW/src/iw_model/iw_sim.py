@@ -25,7 +25,6 @@ class InternalWaveSimulation:
 
     def __init__(self,timeaxis,iwf,ftype=0,dpath="",fname="",chunklim=100):
         self.frames = []
-        self.fields = []
         self.timeaxis = timeaxis
         self.iwf = iwf
         self.ftype = ftype
@@ -48,7 +47,6 @@ class InternalWaveSimulation:
                 self.simulate(coords=coords)
                 self.make_files(offset=i*chunk_size)
                 self.frames = []
-                self.fields=[] 
        
         else:
             self.simulate(coords=coords)
@@ -59,7 +57,6 @@ class InternalWaveSimulation:
             step = self.make_step(t)
             self.iwf.update_field(step)
             self.frames.append(self.iwf.to_dataframe(coords=coords,time=t))
-            self.fields.append(self.iwf.field)
 
 
     def progressbar(self,dataset,desc):

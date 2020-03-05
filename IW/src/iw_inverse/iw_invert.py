@@ -114,11 +114,4 @@ class InternalWaveInversion:
         self.ps['b'] = amps[div:]
 
 
-def read_data_dir(path):
-    for f in get_file_list(path):
-        pass
-
-def get_file_list(path,fpat='run*'):
-    file + glob.glob(os.path.join(path,fpat))
-    return sorted (files)
 

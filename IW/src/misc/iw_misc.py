@@ -47,8 +47,4 @@ def zbar (z):
     return 2*(z-1300)/1300
 
 
-#Kspace Plot
-def kspace_plot(ps):
-    pass
-
 

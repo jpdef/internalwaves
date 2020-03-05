@@ -130,8 +130,9 @@ class InternalWaveField:
         """
         Desc:
         Returns amplitude for wave with mode m and frequency n
+        index m + n*(number of modes)
         """
-        return self.amplitudes[m*self.nfreqs + n]
+        return self.amplitudes[m + n*self.mmodes]
 
 
     def empty_field(self):
@@ -157,6 +158,7 @@ class InternalWaveField:
         D = len(self.depth)
         self.nwaves = len(freqs)*len(self.modes)
         self.nfreqs = len(freqs)
+        self.mmodes = len(self.modes)
         
         
         self.freqs         = freqs

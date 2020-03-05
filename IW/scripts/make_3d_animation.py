@@ -10,7 +10,13 @@ import os
 
 def plot_3d_cube(df,ax,index,pcol):
     cmap = mpl.cm.RdBu
-    norm = mpl.colors.DivergingNorm(vmin=-2, vcenter=0., vmax=2)
+    #cmap = cmocean.cm.thermal
+    
+    dmax = max(df[pcol].unique())
+    dmin = min(df[pcol].unique())
+    davg = np.mean(df[pcol].unique())
+    
+    norm = mpl.colors.DivergingNorm(vmin=dmin,vcenter=davg, vmax=dmax)
 
     x = df['x'].unique()
     y = df['y'].unique()
@@ -53,7 +59,7 @@ def make_animation(path,plot_func,findex=0):
     set_animation_attributes(fig,ax) 
     
     files = get_file_list(path)
-    files = files[:findex] if findex >= 0 else files 
+    files = files[:findex] if findex > 0 else files 
      
     #First Frame
     df = feather.read_dataframe(files[0])
@@ -85,6 +91,7 @@ def scale_axis(df,ax):
     ax.set_xlim3d(xmax,xmin)
     ax.set_ylim3d(ymin,ymax)
     ax.set_zlim3d(zmax,zmin)
+
 
 def set_animation_attributes(fig,ax):
     ax.set_xlabel('Range Km')

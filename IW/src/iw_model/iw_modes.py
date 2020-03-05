@@ -182,7 +182,6 @@ class InternalWaveModes:
     
     def interpolate_modes(self):
         for mode in self.d_modes:
-            #fun  = uspline(self.depth, mode , k=3, s=5)
             import scipy
             fun = scipy.interpolate.interp1d(self.depth,mode)
             self.d_mode_funs.append(fun)

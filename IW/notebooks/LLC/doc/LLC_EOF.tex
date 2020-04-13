@@ -1,0 +1,51 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\begin{document}
+
+\title{LLC EOF Analysis}
+\author{Jacob DeFilippis}
+
+%\maketitle
+
+%\section{Spectral Analysis}
+%A spectral analysis is done on data produced from a MITGCM model in the region of interest.
+%\subsection{Background Profile}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{./figs/EOF/density_profile.png}
+    \caption{Interpolation using splines of the time averaged density depth profile.}
+    \label{depthprof}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{./figs/EOF/ts_dp_disp.png}
+    \caption{Depth time series of displacements calculated from temperature and salinity. Filtered with a bandpass filter centered around M2 with a half-width of 0.01 cph.}
+    \label{ts_d}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{./figs/EOF/ts_dp_vv.png}
+    \caption{Depth time series of vertical velocities.Filtered with a bandpass filter centered around M2 with a half-width of 0.01 cph. }
+    \label{ts_w}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{./figs/EOF/dp_variance.png}
+    \caption{Variance of displacment and vertical velocity over depth.}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{./figs/EOF/EOF.png}
+    \caption{EOFs of Vertical Velocity and Displacment.}
+\end{figure}
+
+
+
+
+\end{document}

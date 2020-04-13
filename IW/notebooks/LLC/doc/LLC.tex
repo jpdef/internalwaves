@@ -1,0 +1,54 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\begin{document}
+
+\title{LLC Analysis}
+\author{Jacob DeFilippis}
+
+%\maketitle
+
+%\section{Spectral Analysis}
+%A spectral analysis is done on data produced from a MITGCM model in the region of interest.
+%\subsection{Background Profile}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=3.0in]{../figs/depth_profiles.png}
+    \caption{Space and Time averaged depth profile}
+    \label{depthprof}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=3.0in]{../figs/time_spectrum.png}
+    \caption{Power Spectral Density}
+    \label{psd}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=3.0in]{../figs/freq_wavenumber_spec.png}
+    \caption{Frequency Wavenumber Spectra}
+    \label{psd}
+\end{figure}
+
+
+
+\begin{figure*}[t!]
+    \centering
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \includegraphics[height=1.2in]{../figs/depth_EOFs.png}
+        \caption{Depth EOFs}
+    \end{subfigure}
+    
+    \begin{subfigure}[t]{0.4\textwidth}
+        \centering
+        \includegraphics[height=1.2in]{../figs/time_eof_amps.png}
+        \caption{Time evolution}
+    \end{subfigure}
+\end{figure*}
+
+
+\end{document}

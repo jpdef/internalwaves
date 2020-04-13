@@ -72,7 +72,7 @@ class InternalWaveField:
         """
         Desc:
         Constructs a 3D wave field componenent for a specific frequency/wavenumber
-        depending on the choosen dependent variable. These components are then summed
+        depending on the choosen dependent variable. These components are then summe
         to give the total wavefield.
         """
         field = self.empty_field()

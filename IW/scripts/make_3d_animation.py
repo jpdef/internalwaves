@@ -15,6 +15,7 @@ def plot_3d_cube(df,ax,index,pcol):
     dmax = max(df[pcol].unique())
     dmin = min(df[pcol].unique())
     davg = np.mean(df[pcol].unique())
+     
     
     norm = mpl.colors.DivergingNorm(vmin=dmin,vcenter=davg, vmax=dmax)
 

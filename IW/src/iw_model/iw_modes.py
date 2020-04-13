@@ -38,7 +38,8 @@ class InternalWaveModes:
         #Generate Vertial Modes & Wavenumbers 
         lamb,vr = self.dmodes_evp()
         r      = self.normalize(vr)
-        self.hwavenumbers =  np.sqrt( (self.freq**2 - f**2 ) / lamb )
+        self.hwavenumbers =  np.sqrt( (self.freq**2 - f**2 ) / lamb**2 )
+        #self.hwavenumbers = abs( (self.freq - f ) / lamb )
         
         self.d_modes     = [ vr[:,m] for m in np.arange(0,len(vr)) ]
         self.p_modes     = self.pressure_modes()
@@ -52,7 +53,7 @@ class InternalWaveModes:
         Desc : Set various attributes for the class
         """
         self.depth = depth
-        self.N2 = N2  if N2.size else self.cannonical_bfrq()
+        self.N2 = N2 if N2.size else self.cannonical_bfrq()
         self.freq = freq if freq > 0 else 1/(3600*24) # 1 cpd
         self.f = f   
         self.num_modes = num_modes 
@@ -174,11 +175,14 @@ class InternalWaveModes:
 
     def evaluate_mode(self,mode,z):
         if self.d_mode_funs:
-            return self.d_mode_funs[mode-1](z)
+            #print("Evaluting mode",mode-1)
+            return self.d_mode_funs[mode](z)
             
         else:
+            #print("Evaluting mode",mode-1)
             self.interpolate_modes()
-            return  self.d_mode_funs[mode-1](z)
+            return  self.d_mode_funs[mode](z)
+    
     
     def interpolate_modes(self):
         for mode in self.d_modes:
@@ -188,8 +192,6 @@ class InternalWaveModes:
 
     
     
-    
-    #deprecated
     def dmodes_wkb(self,j):
         """
         Desc : Solves helmholtz equation using WKB

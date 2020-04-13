@@ -8,12 +8,23 @@ def map_scalars(path,out_col,fn):
    files = os.listdir(path)
    for f in tqdm(files,ascii=True,
                  total=len(files),
-                 leave=True,desc="Mapping Scalars"):
+                 leave=True,desc="Mapping Scalars -> " + out_col):
         fpath = os.path.join(path,f)
         df = feather.read_dataframe(fpath)
         if 'd' in df.columns:
            df[out_col] = fn(df)
         feather.write_dataframe(df,fpath)
+
+def map_anom(df,mean,grad,in1='z',in2='d'):
+    z = df[in1]
+    d = df[in2]
+    return mean(z) + grad(z)*d
+
+def map_svel(df,func):
+    return func(df['S'],df['T'],df['z'])
+
+def map_svel_anom(df,func):
+    return df['CC'] - func(df['z'])
 
 
 #Exampling mapping function for sound speed

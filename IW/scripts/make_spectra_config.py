@@ -61,7 +61,7 @@ frequency range
     -Compute wave directions from dk resolution from nyquist frequency
 """
 depth = np.linspace(0,p['depth_end'],p['depth_res'])
-N2    = feather.read_dataframe(p['n2_file'])['strat']
+N2    = feather.read_dataframe(p['envfile'])['strat']
 K = []
 for i in range(len(freqs)):
     iwm = InternalWaveModes(depth,N2,freq=freqs[i])
@@ -96,8 +96,8 @@ amps_real = np.multiply(amps,np.sin(phi))
 amps_imag = np.multiply(amps,np.cos(phi))
 
 #Normalize for the amount of directions
-amps_real =  [ np.repeat(a/len(headings[i])**2 ,len(headings[i])) for i,a in enumerate(amps_real) ]
-amps_imag =  [ np.repeat(a/len(headings[i])**2 ,len(headings[i])) for i,a in enumerate(amps_imag) ]
+amps_real =  [ np.repeat(a/sqrt(len(headings[i])) ,len(headings[i])) for i,a in enumerate(amps_real) ]
+amps_imag =  [ np.repeat(a/sqrt(len(headings[i])) ,len(headings[i])) for i,a in enumerate(amps_imag) ]
 
 
 """

@@ -46,5 +46,26 @@ def sound_grad_munk(z):
 def zbar (z):
     return 2*(z-1300)/1300
 
+@np.vectorize
+def haversine(lon1, lat1, lon2, lat2):
+    from math import radians, cos, sin, asin, sqrt
+    """
+    Calculate the great circle distance between two points 
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians 
+    def torad(angle):
+        return 180*angle/np.pi
+    
+    lon = torad(lon1) 
+    lat = torad(lat1)
+    lon = torad(lon2) 
+    lat = torad(lat2)
 
-
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    return c * r

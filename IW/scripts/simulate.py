@@ -12,6 +12,7 @@ import json
 import os 
 import functools
 import scipy.interpolate as interp
+import seawater as sw
 
 #Source local libraries
 sys.path.append('../src/iw_model')
@@ -20,8 +21,9 @@ sys.path.append('../src/misc')
 from iw_field import InternalWaveField
 from iw_sim   import InternalWaveSimulation
 from map_scalars import map_scalars
-from map_scalars import map_sound_speed
-from map_scalars import map_sound_speed_anom
+from map_scalars import map_svel
+from map_scalars import map_svel_anom
+from map_scalars import map_anom
 
 cph = 3600
 
@@ -41,16 +43,16 @@ with open(config_fname) as param_file:
 iwrange = np.linspace(0,p['range_end'],p['range_res'])
 iwdepth = np.linspace(0,p['depth_end'],p['depth_res'])
 
-#Stratification Profile
+#Mean Profile
 strat=np.array([])
 try :
-    df = feather.read_dataframe(p['n2_file'])
-    strat = df['strat']
+    mprof = feather.read_dataframe(p['envfile'])
+    strat = mprof['strat']
 except KeyError:
+    "Mean profile"
     pass
      
 #Frequency Distrubution (non radial)
-
 freqs = np.array(p['freqs'])/cph
 modes = np.array(p['modes'])
 amps_real  = p['amps_real'] 
@@ -98,30 +100,36 @@ iws.make_metadata_file()
 iws.run(coords=coords) 
                 
                 
-                
 #Mapping Sound Profile onto IW Field
-if p['ssp_file']:
-    strat=np.array([])
-    try :
-        df = feather.read_dataframe(p['ssp_file'])
-        ssp = df['ssp']
-        ssz = df['depth']
-    except KeyError:
-        print("Incorrect ssp format")
-        exit(0)
-   
-    #Compute interpolation and derivative
-    # TODO needs to be potential sound speed gradient
-    fssp  = interp.UnivariateSpline(ssz, ssp)
-    fsspz = fssp.derivative()
+try :
+   T = mprof['T']
+   S = mprof['S']
 
-    #include into partial function
-    mss  = functools.partial(map_sound_speed,ssp=fssp,ssp_grad=fsspz)
-    mssa = functools.partial(map_sound_speed_anom,ssp_grad=fsspz)
-    map_scalars(p['path'],'c',mss)
-    map_scalars(p['path'],'ca',mssa)
+except KeyError:
+   print("No scalars to map")
+   exit(0)
 
 
-else:
-    map_scalars(p['path'],'c',map_sound_speed)
-    map_scalars(p['path'],'ca',map_sound_speed_anom)
+#Compute interpolation and potential derivative of T&S
+tprof    = interp.UnivariateSpline(mprof['depth'], mprof['T'])
+adtg     = interp.UnivariateSpline(mprof['depth'],
+                   sw.adtg(mprof['S'],mprof['T'],mprof['depth']))
+sprof    = interp.UnivariateSpline(mprof['depth'], mprof['S'])
+sg       = sprof.derivative()
+
+cprof    = interp.UnivariateSpline(mprof['depth'],
+                   sw.svel(mprof['S'],mprof['T'],mprof['depth']))
+
+
+
+#Maps displacment to anomaly
+mat  = functools.partial(map_anom, mean=tprof,  grad=adtg)
+mas  = functools.partial(map_anom, mean=sprof, grad=sg)
+mac  = functools.partial(map_svel, func=sw.svel)
+maca = functools.partial(map_svel_anom, func=cprof)
+
+map_scalars(p['path'],'T',mat)
+map_scalars(p['path'],'S',mas)
+map_scalars(p['path'],'c',mac)
+map_scalars(p['path'],'ca',maca)
+

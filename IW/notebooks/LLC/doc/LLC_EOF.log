@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2018.10.30)  10 APR 2020 11:59
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017/Debian) (preloaded format=pdflatex 2018.10.30)  14 APR 2020 19:06
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -170,34 +170,83 @@ File: ./figs/EOF/ts_dp_vv.png Graphic file (type png)
 <use ./figs/EOF/ts_dp_vv.png>
 Package pdftex.def Info: ./figs/EOF/ts_dp_vv.png  used on input line 31.
 (pdftex.def)             Requested size: 345.0pt x 247.63776pt.
-<./figs/EOF/dp_variance.png, id=5, 757.3896pt x 620.5584pt>
+<./figs/SPEC/w_bar_spectrum.png, id=5, 898.557pt x 878.3214pt>
+File: ./figs/SPEC/w_bar_spectrum.png Graphic file (type png)
+<use ./figs/SPEC/w_bar_spectrum.png>
+Package pdftex.def Info: ./figs/SPEC/w_bar_spectrum.png  used on input line 38.
+
+(pdftex.def)             Requested size: 345.0pt x 337.23674pt.
+<./figs/SPEC/w_depth_spectrum.png, id=6, 857.604pt x 878.3214pt>
+File: ./figs/SPEC/w_depth_spectrum.png Graphic file (type png)
+<use ./figs/SPEC/w_depth_spectrum.png>
+Package pdftex.def Info: ./figs/SPEC/w_depth_spectrum.png  used on input line 4
+4.
+(pdftex.def)             Requested size: 345.0pt x 353.33264pt.
+<./figs/EOF/dp_variance.png, id=7, 757.3896pt x 620.5584pt>
 File: ./figs/EOF/dp_variance.png Graphic file (type png)
 <use ./figs/EOF/dp_variance.png>
-Package pdftex.def Info: ./figs/EOF/dp_variance.png  used on input line 38.
+Package pdftex.def Info: ./figs/EOF/dp_variance.png  used on input line 50.
 (pdftex.def)             Requested size: 345.0pt x 282.67645pt.
-<./figs/EOF/EOF.png, id=6, 738.1176pt x 604.1772pt>
+<./figs/EOF/EOF.png, id=8, 738.1176pt x 604.1772pt>
 File: ./figs/EOF/EOF.png Graphic file (type png)
 <use ./figs/EOF/EOF.png>
-Package pdftex.def Info: ./figs/EOF/EOF.png  used on input line 44.
+Package pdftex.def Info: ./figs/EOF/EOF.png  used on input line 56.
 (pdftex.def)             Requested size: 345.0pt x 282.39609pt.
+<./figs/SPEC/w_eof_spectrum.png, id=9, 725.5908pt x 698.8509pt>
+File: ./figs/SPEC/w_eof_spectrum.png Graphic file (type png)
+<use ./figs/SPEC/w_eof_spectrum.png>
+Package pdftex.def Info: ./figs/SPEC/w_eof_spectrum.png  used on input line 62.
+
+(pdftex.def)             Requested size: 345.0pt x 332.2882pt.
+<./figs/LSFT/mode1_without_priors.png, id=10, 732.7375pt x 497.86pt>
+File: ./figs/LSFT/mode1_without_priors.png Graphic file (type png)
+<use ./figs/LSFT/mode1_without_priors.png>
+Package pdftex.def Info: ./figs/LSFT/mode1_without_priors.png  used on input li
+ne 68.
+(pdftex.def)             Requested size: 345.0pt x 234.41205pt.
+<./figs/LSFT/mode1_with_priors.png, id=11, 739.76375pt x 497.86pt>
+File: ./figs/LSFT/mode1_with_priors.png Graphic file (type png)
+<use ./figs/LSFT/mode1_with_priors.png>
+Package pdftex.def Info: ./figs/LSFT/mode1_with_priors.png  used on input line 
+74.
+(pdftex.def)             Requested size: 345.0pt x 232.1862pt.
+<./figs/LSFT/mode1_bandpass_without_priors.png, id=12, 742.775pt x 497.86pt>
+File: ./figs/LSFT/mode1_bandpass_without_priors.png Graphic file (type png)
+<use ./figs/LSFT/mode1_bandpass_without_priors.png>
+Package pdftex.def Info: ./figs/LSFT/mode1_bandpass_without_priors.png  used on
+ input line 80.
+(pdftex.def)             Requested size: 345.0pt x 231.24422pt.
+<./figs/LSFT/mode1_bandpass_with_priors.png, id=13, 748.7975pt x 497.86pt>
+File: ./figs/LSFT/mode1_bandpass_with_priors.png Graphic file (type png)
+<use ./figs/LSFT/mode1_bandpass_with_priors.png>
+Package pdftex.def Info: ./figs/LSFT/mode1_bandpass_with_priors.png  used on in
+put line 86.
+(pdftex.def)             Requested size: 345.0pt x 229.38301pt.
 
 [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map} <./figs/EOF/density_profi
 le.png>] [2 <./figs/EOF/ts_dp_disp.png>] [3 <./figs/EOF/ts_dp_vv.png>] [4 <./fi
-gs/EOF/dp_variance.png>] [5 <./figs/EOF/EOF.png>] (./LLC_EOF.aux) ) 
+gs/SPEC/w_bar_spectrum.png>] [5 <./figs/SPEC/w_depth_spectrum.png>] [6 <./figs/
+EOF/dp_variance.png>] [7 <./figs/EOF/EOF.png>] [8 <./figs/SPEC/w_eof_spectrum.p
+ng>] [9 <./figs/LSFT/mode1_without_priors.png> <./figs/LSFT/mode1_with_priors.p
+ng>] [10 <./figs/LSFT/mode1_bandpass_without_priors.png> <./figs/LSFT/mode1_ban
+dpass_with_priors.png>] (./LLC_EOF.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
 Here is how much of TeX's memory you used:
- 2562 strings out of 492982
- 41132 string characters out of 6134895
- 97646 words of memory out of 5000000
- 6133 multiletter control sequences out of 15000+600000
+ 2599 strings out of 492982
+ 42445 string characters out of 6134895
+ 99622 words of memory out of 5000000
+ 6161 multiletter control sequences out of 15000+600000
  3640 words of font info for 14 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  42i,5n,40p,277b,263s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/share/
-texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb>
-Output written on LLC_EOF.pdf (5 pages, 990746 bytes).
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb>
+Output written on LLC_EOF.pdf (10 pages, 1418252 bytes).
 PDF statistics:
- 35 PDF objects out of 1000 (max. 8388607)
- 16 compressed objects within 1 object stream
+ 66 PDF objects out of 1000 (max. 8388607)
+ 28 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
- 26 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 61 words of extra memory for PDF output out of 10000 (max. 10000000)
 

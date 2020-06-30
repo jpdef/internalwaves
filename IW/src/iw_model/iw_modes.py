@@ -35,17 +35,31 @@ class InternalWaveModes:
         #Set Attributes
         self.set_attributes(depth,N2,freq,f,num_modes)
 
-        #Generate Vertial Modes & Wavenumbers 
-        lamb,vr = self.dmodes_evp()
-        r      = self.normalize(vr)
-        self.hwavenumbers =  np.sqrt( (self.freq**2 - f**2 ) / lamb**2 )
-        #self.hwavenumbers = abs( (self.freq - f ) / lamb )
+        #Generate Vertial Modes & Wavenumbers
+        if ( self.freq >= f ):
+            lamb,vr = self.dmodes_evp()
+            r      = self.normalize(vr)
+            self.hwavenumbers =  np.sqrt( (self.freq**2 - f**2 ) / lamb )
+            
+            self.d_modes     = [ vr[:,m] for m in np.arange(0,len(vr)) ]
+            self.p_modes     = self.pressure_modes()
+            self.u_modes     = self.velocity_modes()
+            
+            self.d_mode_funs = []
         
-        self.d_modes     = [ vr[:,m] for m in np.arange(0,len(vr)) ]
-        self.p_modes     = self.pressure_modes()
-        self.u_modes     = self.velocity_modes()
-        
-        self.d_mode_funs = []
+        #Generate QG voritcal modes
+        else : 
+            lamb,vr = self.dmodes_evp_vortical()
+            r      = self.normalize(vr)
+            self.hwavenumbers =  np.sqrt( f**2 / lamb )
+            
+            self.d_modes     = [ vr[:,m] for m in np.arange(0,len(vr)) ]
+            self.p_modes     = [] 
+            self.u_modes     = []
+            
+            self.d_mode_funs = []
+            
+            
 
 
     def set_attributes(self,depth,N2,freq,f,num_modes):
@@ -54,7 +68,7 @@ class InternalWaveModes:
         """
         self.depth = depth
         self.N2 = N2 if N2.size else self.cannonical_bfrq()
-        self.freq = freq if freq > 0 else 1/(3600*24) # 1 cpd
+        self.freq = freq 
         self.f = f   
         self.num_modes = num_modes 
 
@@ -79,6 +93,29 @@ class InternalWaveModes:
         
         #Eigen value problem IW equation
         lamb,vr = eig((F2-N2),D2)
+        
+        return lamb,vr
+    
+    
+    def dmodes_evp_vortical(self):
+        """
+        Desc : Solves helmoltz equation using an EVP solver 
+               techique for interal wave vertical velocity 
+        Returns:
+               solution : array
+                 A solution as a function of the depth coordinate
+        """
+        #Physical Properties
+        H  = len(self.depth)
+        delta = (self.depth[H-1] - self.depth[0])/H
+        
+        #FDM stencil for centered second derivative
+        D2  = self.tri_fdm(H,delta)
+        N2  = np.diag(self.N2)
+        
+        #Eigen value problem QG equation
+        print('solving qg')
+        lamb,vr = eig(-N2,D2)
         
         return lamb,vr
     
